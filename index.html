@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Track Your Custimoo Shipment</title>
+  <meta name="description" content="Track your Custimoo shipment — live carrier updates, ETA, and route intelligence.">
+  <meta name="theme-color" content="#33DCAE">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Custimoo">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: linear-gradient(180deg, #f8fafc 0%, #ecfdf5 100%);
+      color: #1f2937;
+      font-size: 14px;
+      min-height: 100vh;
+    }
+
+    .wrap { max-width: 720px; margin: 0 auto; padding: 40px 20px 60px; }
+
+    /* ---------- Brand header ---------- */
+    .brand { text-align: center; margin-bottom: 28px; }
+    .brand-icon {
+      display: inline-block;
+      width: 72px; height: 72px;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 2px 8px rgba(15, 23, 42, 0.12));
+    }
+    .brand-icon svg { width: 100%; height: 100%; display: block; }
+    .brand h1 { font-size: 24px; font-weight: 700; color: #111827; letter-spacing: -0.3px; }
+    .brand p  { font-size: 14px; color: #5b6166; margin-top: 4px; }
+
+    /* ---------- Search card ---------- */
+    .search-card {
+      background: #fff; border-radius: 14px; padding: 22px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      margin-bottom: 22px;
+    }
+    .search-row { display: flex; gap: 10px; }
+    .search-row input {
+      flex: 1; padding: 13px 14px; font-size: 15px;
+      border: 1.5px solid #e5e7eb; border-radius: 10px; outline: none;
+      font-family: "Courier New", monospace; letter-spacing: 0.4px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-row input:focus {
+      border-color: #33DCAE; box-shadow: 0 0 0 3px rgba(16,185,129,0.20);
+    }
+    .search-row button {
+      padding: 13px 22px; background: #1FB089; color: #fff;
+      border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s; white-space: nowrap;
+    }
+    .search-row button:hover:not(:disabled) { background: #1FB089; }
+    .search-row button:disabled { background: #9CA1A3; cursor: not-allowed; }
+    .hint { font-size: 12px; color: #5b6166; margin-top: 10px; text-align: center; }
+
+    /* ---------- Result card ---------- */
+    .result {
+      background: #fff; border-radius: 14px; padding: 26px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      animation: fadeIn 0.25s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .result-head {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      padding-bottom: 18px; border-bottom: 1px solid #f3f4f6; margin-bottom: 18px;
+    }
+    .tracking-line {
+      font-family: "Courier New", monospace; font-weight: 700; color: #0f172a;
+      font-size: 18px; letter-spacing: 0.6px;
+    }
+    .carrier-tag {
+      display: inline-block; padding: 4px 10px; border-radius: 5px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px;
+    }
+    .carrier-DHL   { background: #C5C9CB; color: #5b6166; }
+    .carrier-FEDEX { background: #f3f4f6; color: #5b6166; }
+
+    .live-tag {
+      display: inline-block; padding: 4px 10px; border-radius: 5px;
+      background: #d1fae5; color: #1FB089;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+      margin-top: 4px; margin-left: 6px;
+    }
+    .live-tag::before {
+      content: ""; display: inline-block; width: 7px; height: 7px;
+      border-radius: 50%; background: #1FB089; margin-right: 6px;
+      vertical-align: 1px; animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .status-block {
+      text-align: center; padding: 22px 16px; border-radius: 12px;
+      margin-bottom: 22px;
+    }
+    .status-icon { font-size: 38px; line-height: 1; margin-bottom: 10px; }
+    .status-label { font-size: 22px; font-weight: 700; letter-spacing: -0.2px; }
+    .status-sub   { font-size: 13px; margin-top: 6px; opacity: 0.85; }
+    .s-delivered  { background: #ecfdf5; color: #1FB089; }
+    .s-outfor     { background: #f5f3ff; color: #5b6166; }
+    .s-transit    { background: #ecfdf5; color: #5b6166; }
+    .s-onhold     { background: #f3f4f6; color: #5b6166; }
+    .s-clearance  { background: #fffbeb; color: #5b6166; }
+    .s-pickedup   { background: #ecfeff; color: #5b6166; }
+    .s-other      { background: #f9fafb; color: #374151; }
+
+    /* Click-to-expand journey: status block is clickable */
+    .status-block.clickable {
+      cursor: pointer; user-select: none;
+      transition: filter 0.15s, transform 0.05s;
+    }
+    .status-block.clickable:hover { filter: brightness(0.96); }
+    .status-block.clickable:active { transform: scale(0.997); }
+    .status-block .chevron {
+      display: inline-block; margin-left: 6px;
+      font-size: 16px; opacity: 0.7;
+      transition: transform 0.2s;
+    }
+    .status-block.expanded .chevron { transform: rotate(180deg); opacity: 1; }
+    .status-block .click-hint {
+      display: block; font-size: 12px; opacity: 0.7; margin-top: 8px;
+      letter-spacing: 0.2px;
+    }
+    .status-block.expanded .click-hint { display: none; }
+
+    .journey-collapsible { display: none; }
+    .journey-collapsible.expanded { display: block; }
+
+    /* Courier ETA hero — top of result card, the carrier's own predicted delivery date */
+    .eta-hero {
+      display: flex; align-items: center; gap: 16px;
+      padding: 18px 22px; margin-bottom: 18px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-radius: 12px; color: #fff;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.30);
+    }
+    .eta-icon { font-size: 32px; line-height: 1; }
+    .eta-text { flex: 1; }
+    .eta-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      opacity: 0.95; font-weight: 600; margin-bottom: 2px;
+    }
+    .eta-date {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.2px; line-height: 1.2;
+    }
+    .eta-source {
+      font-size: 12px; opacity: 0.85; margin-top: 3px;
+    }
+    @media (max-width: 520px) {
+      .eta-date { font-size: 18px; }
+      .eta-icon { font-size: 26px; }
+    }
+
+    /* Smart ETA — secondary card BELOW the info grid, smaller than the courier hero */
+    .smart-eta-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; margin-top: 16px;
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
+      color: #1FB089; position: relative;
+    }
+    .smart-eta-card .smart-eta-icon { font-size: 20px; line-height: 1; }
+    .smart-eta-card .smart-eta-text { flex: 1; }
+    .smart-eta-card .smart-eta-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+      font-weight: 700; color: #1FB089;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .smart-eta-card .smart-eta-value {
+      font-size: 15px; font-weight: 700; margin-top: 2px;
+    }
+    .smart-eta-card .smart-eta-sub { font-size: 12px; color: #5b6166; margin-top: 2px; }
+
+    /* Info icon + tooltip (used inside smart-eta-card) */
+    .info-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #d1fae5; color: #1FB089;
+      font-size: 11px; font-weight: 700; cursor: help;
+      font-family: Georgia, serif; font-style: italic;
+      border: 1px solid #6ee7b7;
+    }
+    .info-icon:hover { background: #a7f3d0; }
+    .smart-eta-card .tooltip {
+      visibility: hidden; opacity: 0; position: absolute;
+      bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #0f172a; color: #fff;
+      padding: 12px 16px; border-radius: 8px;
+      width: 320px; max-width: 90vw;
+      font-size: 13px; line-height: 1.5; font-weight: 400;
+      letter-spacing: 0; text-transform: none;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+      z-index: 10; pointer-events: none;
+      transition: opacity 0.15s;
+    }
+    .smart-eta-card .tooltip::before {
+      content: ""; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%);
+      border-left: 6px solid transparent; border-right: 6px solid transparent;
+      border-top: 6px solid #0f172a;
+    }
+    .info-icon:hover + .tooltip,
+    .info-icon:focus + .tooltip { visibility: visible; opacity: 1; }
+
+    .info-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .info-item { background: #f9fafb; padding: 12px 14px; border-radius: 8px; }
+    .info-item .lbl {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+      color: #5b6166; font-weight: 600; margin-bottom: 3px;
+    }
+    .info-item .val {
+      font-size: 14px; color: #111827; font-weight: 500; word-break: break-word;
+    }
+
+    .last-scan-banner {
+      margin-top: 16px; padding: 12px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+    }
+    .last-scan-warn { background: #f3f4f6; color: #5b6166; border: 1px solid #C5C9CB; }
+    .last-scan-ok   { background: #ecfdf5; color: #1FB089; border: 1px solid #a7f3d0; }
+
+    /* ---------- NEW: Journey timeline ---------- */
+    .journey-section {
+      margin-top: 24px; padding-top: 22px;
+      border-top: 1px solid #f3f4f6;
+    }
+    .journey-title {
+      font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px;
+      color: #5b6166; font-weight: 700; margin-bottom: 16px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .journey-title .count {
+      font-size: 11px; color: #9CA1A3; font-weight: 500; letter-spacing: 0.3px;
+    }
+    .timeline { position: relative; }
+    .timeline-item {
+      position: relative; padding: 0 0 18px 26px;
+      margin-left: 6px;
+    }
+    .timeline-item::after {
+      content: ""; position: absolute; left: 0; top: 14px; bottom: -4px;
+      width: 2px; background: #e5e7eb;
+    }
+    .timeline-item:last-child::after { display: none; }
+    .timeline-item::before {
+      content: ""; position: absolute; left: -5px; top: 4px;
+      width: 12px; height: 12px; border-radius: 50%; background: #C5C9CB;
+      border: 2px solid #fff; box-shadow: 0 0 0 1px #C5C9CB;
+      z-index: 1;
+    }
+    .timeline-item.first::before {
+      background: #1FB089; box-shadow: 0 0 0 1px #1FB089, 0 0 0 5px rgba(29, 78, 216, 0.2);
+      width: 14px; height: 14px; left: -6px;
+    }
+    .timeline-item.delivered::before        { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.out_for_delivery::before { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.in_transit::before       { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.customs::before          { background: #5b6166; box-shadow: 0 0 0 1px #5b6166; }
+    .timeline-item.exception::before        { background: #5b6166; box-shadow: 0 0 0 1px #5b6166; }
+    .timeline-item.pickup::before           { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.first.delivered::before        { box-shadow: 0 0 0 1px #1FB089, 0 0 0 5px rgba(22, 163, 74, 0.2); }
+    .timeline-item.first.out_for_delivery::before { box-shadow: 0 0 0 1px #1FB089, 0 0 0 5px rgba(124, 58, 237, 0.2); }
+    .timeline-item.first.in_transit::before       { box-shadow: 0 0 0 1px #1FB089, 0 0 0 5px rgba(37, 99, 235, 0.2); }
+    .timeline-item.first.customs::before          { box-shadow: 0 0 0 1px #5b6166, 0 0 0 5px rgba(217, 119, 6, 0.2); }
+    .timeline-item.first.exception::before        { box-shadow: 0 0 0 1px #5b6166, 0 0 0 5px rgba(220, 38, 38, 0.2); }
+    .timeline-item.first.pickup::before           { box-shadow: 0 0 0 1px #1FB089, 0 0 0 5px rgba(8, 145, 178, 0.2); }
+
+    .tl-time { font-size: 12px; color: #5b6166; font-weight: 500; }
+    .tl-desc { font-size: 14px; color: #111827; margin-top: 2px; font-weight: 500; line-height: 1.4; }
+    .tl-loc  { font-size: 13px; color: #5b6166; margin-top: 3px; }
+    .tl-detail { font-size: 12px; color: #9CA1A3; margin-top: 2px; font-style: italic; line-height: 1.35; }
+
+    .no-journey {
+      text-align: center; padding: 18px; background: #f9fafb; border-radius: 8px;
+      color: #9CA1A3; font-size: 13px; font-style: italic;
+    }
+
+    /* ---------- Route intelligence ---------- */
+    .route-intel { margin-top: 24px; padding-top: 22px; border-top: 1px solid #f3f4f6; }
+    .route-intel .ri-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: #5b6166; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+    .route-intel .ri-pill { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+    .ri-pill.solid  { background: #d1fae5; color: #1FB089; }
+    .ri-pill.dashed { background: #f3f4f6; color: #5b6166; border: 1px dashed #C5C9CB; }
+    .ri-pill.conf-high   { background: #d1fae5; color: #1FB089; }
+    .ri-pill.conf-medium { background: #f3f4f6; color: #5b6166; }
+    .ri-pill.conf-low    { background: #f3f4f6; color: #9CA1A3; }
+    .ri-pill.conf-none   { background: #f3f4f6; color: #9CA1A3; }
+
+    .ri-section-head { font-size: 12px; font-weight: 700; color: #5b6166; margin: 8px 0 10px; display: flex; align-items: center; gap: 8px; }
+    .ri-meta { font-size: 12px; color: #9CA1A3; margin-bottom: 12px; line-height: 1.5; }
+    .ri-meta strong { color: #5b6166; }
+
+    /* Solid timeline for actual check-ins (reuses existing .timeline-item but with new connector) */
+    .route-intel .timeline-actual .timeline-item::after { background: #1FB089; opacity: 0.5; }
+    .route-intel .timeline-actual .timeline-item::before { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+
+    /* Dashed timeline for AI estimated next steps */
+    .route-intel .timeline-estimated .timeline-item { opacity: 0.85; }
+    .route-intel .timeline-estimated .timeline-item::after { background: transparent; border-left: 2px dashed #9CA1A3; width: 0; }
+    .route-intel .timeline-estimated .timeline-item::before { background: #fff; border: 2px dashed #9CA1A3; box-shadow: none; }
+    .route-intel .timeline-estimated .tl-desc { color: #5b6166; }
+    .route-intel .timeline-estimated .tl-loc  { font-style: italic; }
+    .ri-est-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.3px; background: #f3f4f6; color: #5b6166; border: 1px dashed #C5C9CB; }
+    .ri-empty { background: #f9fafb; border-radius: 8px; padding: 14px; color: #5b6166; font-size: 13px; }
+
+    /* Evidence drawer — comparable shipments */
+    .ri-evidence-link { display: inline-block; margin-top: 6px; font-size: 12px; color: #1FB089; cursor: pointer; text-decoration: underline; font-weight: 600; }
+    .ri-evidence-link:hover { color: #0f766e; }
+    .ri-evidence-drawer { display: none; margin-top: 12px; padding: 14px 16px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; }
+    .ri-evidence-drawer.open { display: block; }
+    .ri-evidence-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 12px; flex-wrap: wrap; }
+    .ri-evidence-head .ri-evidence-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #5b6166; }
+    .ri-evidence-head .ri-evidence-close { background: transparent; border: 1px solid #C5C9CB; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px; color: #5b6166; }
+    .ri-evidence-head .ri-evidence-close:hover { background: #f3f4f6; }
+    .ri-evidence-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ri-evidence-table th { background: #f3f4f6; text-align: left; padding: 6px 8px; color: #5b6166; font-weight: 600; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid #e5e7eb; }
+    .ri-evidence-table td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: top; }
+    .ri-evidence-table tr:last-child td { border-bottom: 0; }
+    .ri-evidence-table .ev-tn { font-family: "Courier New", monospace; color: #0f172a; font-weight: 600; }
+    .ri-evidence-table .ev-mc { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: #d1fae5; color: #1FB089; font-weight: 600; }
+    .ri-evidence-summary { font-size: 11.5px; color: #5b6166; margin-top: 8px; line-height: 1.4; }
+    .ri-disclaimer { background: #f9fafb; border: 1px dashed #C5C9CB; border-radius: 8px; padding: 10px 14px; color: #5b6166; font-size: 12px; line-height: 1.5; margin: 0 0 12px; }
+    .ri-pill.ri-custimoo-date { background: #d1fae5; color: #1FB089; border: 1px solid #6ee7b7; }
+    .ri-next { background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 10px 14px; margin: 0 0 12px; font-size: 13px; color: #111827; line-height: 1.5; }
+
+    /* ---------- Destination details ---------- */
+    .dest-details { margin-top: 20px; padding: 16px 18px; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb; }
+    .dest-details .dd-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; color: #5b6166; font-weight: 700; margin-bottom: 12px; }
+    .dest-details .dd-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    .dest-details .dd-row { background: #fff; padding: 8px 12px; border-radius: 8px; border: 1px solid #f3f4f6; }
+    .dest-details .dd-k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; color: #9CA1A3; font-weight: 600; margin-bottom: 2px; }
+    .dest-details .dd-v { font-size: 13.5px; color: #111827; font-weight: 500; word-break: break-word; }
+
+    /* ---------- States ---------- */
+    .empty, .loading, .error {
+      background: #fff; border-radius: 14px; padding: 40px 22px; text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .loading-icon {
+      width: 36px; height: 36px; margin: 0 auto 14px;
+      border: 3.5px solid #e5e7eb; border-top-color: #1FB089; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty p, .loading p { color: #5b6166; font-size: 14px; }
+    .error { color: #5b6166; }
+    .error .err-icon { font-size: 38px; margin-bottom: 10px; }
+    .error .err-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; color: #111827; }
+    .error .err-msg   { color: #5b6166; font-size: 13px; }
+
+    .footer { text-align: center; color: #9CA1A3; font-size: 12px; padding-top: 28px; }
+
+    @media (max-width: 520px) {
+      .wrap { padding: 24px 14px 40px; }
+      .search-row { flex-direction: column; }
+      .search-row button { width: 100%; }
+      .status-label { font-size: 19px; }
+      .status-icon { font-size: 32px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+
+    <div class="brand">
+      <div class="brand-icon" aria-label="Custimoo logo">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img">
+          <!-- white circle background -->
+          <circle cx="50" cy="50" r="50" fill="#ffffff"/>
+          <!-- filled "c" — outer + inner arcs sharing center (50,50), radii 30 and 17 -->
+          <path d="M 72 30 A 30 30 0 1 0 72 70 L 63 61 A 17 17 0 1 1 63 39 Z"
+                fill="#0f172a"/>
+          <!-- green half-disc accent — aligned with the C's lower-right edge -->
+          <path d="M 72 72 H 86 A 7 7 0 0 1 72 72 Z"
+                fill="#33DCAE"
+                transform="rotate(-15 79 75.5)"/>
+        </svg>
+      </div>
+      <h1>Track Your Custimoo Shipment</h1>
+      <p>Enter your tracking number to see the latest status and full journey</p>
+    </div>
+
+    <div class="search-card">
+      <form id="search-form" autocomplete="off" onsubmit="return false;">
+        <div class="search-row">
+          <input type="text" id="tn-input" placeholder="Enter tracking number..." spellcheck="false">
+          <button type="submit" id="search-btn">Track</button>
+        </div>
+        <div class="hint">Works for DHL and FedEx tracking numbers</div>
+      </form>
+    </div>
+
+    <div id="result-area"></div>
+
+    <div class="footer">Updates fetched live from carriers · For help, contact our support team at <a href="mailto:wafa@custimoo.com" style="color:#1FB089;text-decoration:none;">wafa@custimoo.com</a></div>
+
+  </div>
+
+  <script>
+    // Backend = Google Apps Script web app. Same script ID as the iframed deployment,
+    // but called over plain HTTPS with `?api=...` for CORS-friendly JSON responses.
+    var API_URL = "https://script.google.com/macros/s/AKfycbwx9_BB153l0U57v2gKvWG2xe72B5eUxNIbU1lUPCgQJE-xK-7m-fBDDtgWMj2Gkb2Xew/exec";
+    var QS = new URLSearchParams(window.location.search || "");
+    var PREFILLED = (QS.get("tn") || QS.get("tracking") || QS.get("trackingNumber") || "").trim();
+    var IS_INTERNAL = QS.get("internal") === "1" || QS.get("auth") === "1";
+
+    // Tiny JSON GET helper — mirrors the google.script.run callback contract so the
+    // call sites below stay readable: apiGet(name, params, onOk, onErr).
+    function apiGet(name, params, onOk, onErr) {
+      var qs = "api=" + encodeURIComponent(name);
+      Object.keys(params || {}).forEach(function (k) {
+        var v = params[k];
+        if (v == null) return;
+        qs += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(v);
+      });
+      fetch(API_URL + "?" + qs, { method: "GET", redirect: "follow", mode: "cors", credentials: "omit" })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(function (data) { try { onOk && onOk(data); } catch (e) { onErr && onErr(e); } })
+        .catch(function (err) { onErr && onErr(err); });
+    }
+
+    // Service worker — installable PWA shell.
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.register("sw.js").catch(function () {});
+      });
+    }
+
+    var STATUS_MAP = {
+      "delivered":          { cls: "s-delivered", icon: "✓",  sub: "Your package has been delivered." },
+      "out for delivery":   { cls: "s-outfor",    icon: "🚚", sub: "Your package is on the way to you today." },
+      "in transit":         { cls: "s-transit",   icon: "✈️", sub: "Your package is moving through the carrier network." },
+      "on hold":            { cls: "s-onhold",    icon: "⏸",  sub: "We\'re working with the carrier to resolve a hold on your shipment. Please contact our support team if you need an update." },
+      "in clearance":       { cls: "s-clearance", icon: "🛃", sub: "Your package is going through customs clearance — usually 1–2 business days. We\'ll reach out if any additional info is needed." },
+      "picked up":          { cls: "s-pickedup",  icon: "📮", sub: "Your package has been picked up from the sender." },
+      "shipment booked":    { cls: "s-other",     icon: "📋", sub: "Shipment information has been received by the carrier." },
+      "returned":           { cls: "s-onhold",    icon: "↩",  sub: "Your package was returned to sender. Please contact our support team for next steps." },
+      "disposed":           { cls: "s-onhold",    icon: "✕",  sub: "The carrier disposed of this package. Please contact our support team." },
+      "please call courier":{ cls: "s-onhold",    icon: "📞", sub: "The carrier needs to reach you. Please contact them or our support team." },
+      "third party delivery arranged": { cls: "s-other", icon: "🤝", sub: "A third-party courier will deliver your package soon." }
+    };
+
+    function statusMeta(status) {
+      var s = String(status || "").toLowerCase();
+      if (STATUS_MAP[s]) return STATUS_MAP[s];
+      var keys = Object.keys(STATUS_MAP);
+      for (var i = 0; i < keys.length; i++) {
+        if (s.indexOf(keys[i]) > -1) return STATUS_MAP[keys[i]];
+      }
+      return { cls: "s-other", icon: "📦", sub: "" };
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, {
+        year: "numeric", month: "short", day: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      });
+    }
+
+    // Friendly ETA format (no time): "Wed, May 6, 2026"
+    function fmtETA(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString(undefined, {
+        weekday: "short", year: "numeric", month: "short", day: "numeric"
+      });
+    }
+
+    // "Should arrive in N days" / "today" / "X days overdue" — based on typical
+    // delivery days for the destination country and the pickup date.
+    function fmtExpected(typicalDays, pickupIso) {
+      if (!typicalDays || !pickupIso) return "";
+      var pickup = new Date(pickupIso);
+      if (isNaN(pickup.getTime())) return "";
+      var daysSince = (Date.now() - pickup.getTime()) / 86400000;
+      var remaining = Math.round(typicalDays - daysSince);
+      if (remaining > 1)  return "in " + remaining + " days";
+      if (remaining === 1) return "in 1 day";
+      if (remaining === 0) return "today";
+      var overdue = Math.abs(remaining);
+      return overdue + " day" + (overdue === 1 ? "" : "s") + " overdue";
+    }
+
+    // Expected delivery date: pickup date + typical days. Returns "May 11" or "".
+    function fmtExpectedDate(typicalDays, pickupIso) {
+      if (!typicalDays || !pickupIso) return "";
+      var pickup = new Date(pickupIso);
+      if (isNaN(pickup.getTime())) return "";
+      var d = new Date(pickup.getTime() + typicalDays * 86400000);
+      return d.toLocaleDateString("en-US", { month: "long", day: "numeric" });
+    }
+
+    function escapeHtml(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function showLoading() {
+      document.getElementById("result-area").innerHTML =
+        '<div class="loading">' +
+          '<div class="loading-icon"></div>' +
+          '<p>Looking up your shipment...</p>' +
+          '<p style="font-size:12px;color:#9CA1A3;margin-top:6px;">Fetching live status from the carrier</p>' +
+        '</div>';
+    }
+
+    function showError(title, msg) {
+      document.getElementById("result-area").innerHTML =
+        '<div class="error">' +
+          '<div class="err-icon">🔍</div>' +
+          '<div class="err-title">' + escapeHtml(title) + '</div>' +
+          '<div class="err-msg">' + escapeHtml(msg) + '</div>' +
+        '</div>';
+    }
+
+    /**
+     * Build a "Destination details" section using data we already have on the
+     * shipment lookup response. This is public-safe by default — only fields
+     * that are okay to expose to a customer holding a tracking number.
+     * Sensitive fields (phone, email, full street) are intentionally NOT shown
+     * here. Add them server-side behind an authenticated route if needed.
+     */
+    function buildDestinationDetailsHtml(r) {
+      if (!r) return "";
+      var rows = [];
+      // Country name extracted from address
+      var countryName = "";
+      if (r.country) {
+        var parts = String(r.country).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+        if (parts.length) countryName = parts[parts.length - 1].replace(/\b\d{4,}\b/g, "").replace(/\s{2,}/g, " ").trim();
+      }
+      if (r.internal && IS_INTERNAL) {
+        // Internal / CSM view — full destination details from backend sheet
+        if (r.customerName)        rows.push({ k: "Customer / Company", v: r.customerName });
+        if (r.receiverName)        rows.push({ k: "Recipient name",     v: r.receiverName });
+        if (r.fullAddress)         rows.push({ k: "Full address",       v: r.fullAddress });
+        if (r.destinationCity)     rows.push({ k: "Destination city",   v: r.destinationCity });
+        if (r.destinationProvince) rows.push({ k: "Province / State",   v: r.destinationProvince });
+        if (countryName)           rows.push({ k: "Country",            v: countryName });
+        if (r.orderRef)            rows.push({ k: "Order reference",    v: r.orderRef });
+        else if (r.orderId)        rows.push({ k: "Order reference",    v: r.orderId });
+        if (r.carrier)             rows.push({ k: "Carrier",            v: r.carrier });
+        if (r.shipmentService)     rows.push({ k: "Shipment service",   v: r.shipmentService });
+        else if (r.shipmentDescription) rows.push({ k: "Shipment service", v: r.shipmentDescription });
+        if (r.weight)              rows.push({ k: "Weight",             v: r.weight });
+      } else {
+        // Public tracker — masked public-safe fields only
+        if (r.destinationCity)     rows.push({ k: "Destination city",   v: r.destinationCity });
+        if (r.destinationProvince) rows.push({ k: "Province / State",   v: r.destinationProvince });
+        if (countryName)           rows.push({ k: "Country",            v: countryName });
+        if (r.orderId)             rows.push({ k: "Order reference",    v: r.orderId });
+      }
+      if (!rows.length) return "";
+      var html = '<div class="dest-details">'
+               +   '<div class="dd-title">Destination details</div>'
+               +   '<div class="dd-grid">';
+      rows.forEach(function (row) {
+        html += '<div class="dd-row">'
+              +   '<div class="dd-k">' + escapeHtml(row.k) + '</div>'
+              +   '<div class="dd-v">' + escapeHtml(row.v) + '</div>'
+              + '</div>';
+      });
+      html += '</div></div>';
+      return html;
+    }
+
+    function buildJourneyHtml(events) {
+      if (!events || events.length === 0) {
+        return '<div class="journey-section">' +
+                 '<div class="journey-title">Shipment Journey</div>' +
+                 '<div class="no-journey">No journey events available yet.</div>' +
+               '</div>';
+      }
+      var itemsHtml = events.map(function (e, i) {
+        var firstClass = (i === 0) ? " first" : "";
+        return '<div class="timeline-item ' + escapeHtml(e.category || "other") + firstClass + '">' +
+                 '<div class="tl-time">' + escapeHtml(e.timestamp ? fmtDate(e.timestamp) : "") + '</div>' +
+                 '<div class="tl-desc">' + escapeHtml(e.description || "—") + '</div>' +
+                 (e.detail   ? '<div class="tl-detail">' + escapeHtml(e.detail)   + '</div>' : "") +
+                 (e.location ? '<div class="tl-loc">'    + escapeHtml(e.location) + '</div>' : "") +
+               '</div>';
+      }).join("");
+      return '<div class="journey-section">' +
+               '<div class="journey-title">' +
+                 '<span>Shipment Journey</span>' +
+                 '<span class="count">' + events.length + ' event' + (events.length === 1 ? "" : "s") + '</span>' +
+               '</div>' +
+               '<div class="timeline">' + itemsHtml + '</div>' +
+             '</div>';
+    }
+
+    function showResult(r) {
+      var meta = statusMeta(r.status);
+      var carrier = (r.carrier || "").toUpperCase();
+      var carrierTag = carrier
+        ? '<span class="carrier-tag carrier-' + escapeHtml(carrier) + '">' + escapeHtml(r.carrier) + '</span>'
+        : "";
+      var liveTag = "";    // removed for customer-facing UI (was internal noise)
+
+      // Internal SLA "X hrs remaining" banner removed — meaningless to customers.
+      // The breached warning is also dropped — entirely internal SLA, not for customers.
+      // last-scan banner removed entirely — internal SLA metric, not customer-facing
+      var lastScanBanner = "";
+
+      var infoCells = [];
+      // Weight + Live-update badge removed for customer-facing view (internal info).
+      // ETA is rendered above the info grid as a hero card, not here.
+      if (r.location)              infoCells.push({ lbl: "Latest Location",         val: r.location });
+      if (r.timestamp)             infoCells.push({ lbl: "Latest Update",           val: fmtDate(r.timestamp) });
+      if (r.estimatedDeliveryDate) infoCells.push({ lbl: "Courier’s Estimated Delivery", val: fmtDate(r.estimatedDeliveryDate) });
+      if (r.pickupDate)            infoCells.push({ lbl: "Picked Up",               val: fmtDate(r.pickupDate) });
+      if (r.country)               infoCells.push({ lbl: "Destination",             val: r.country });
+      // Smart ETA is rendered as a hero card above (not in this grid).
+      var isDelivered = (r.status || "").toLowerCase().indexOf("delivered") > -1;
+      if (r.description)           infoCells.push({ lbl: "Latest Activity",         val: r.description });
+      if (r.orderId)               infoCells.push({ lbl: "Order Reference",         val: r.orderId });
+
+      var infoHtml = infoCells.map(function (c) {
+        return '<div class="info-item"><div class="lbl">' + escapeHtml(c.lbl) + '</div><div class="val">' + escapeHtml(c.val) + '</div></div>';
+      }).join("");
+
+      document.getElementById("result-area").innerHTML =
+        '<div class="result">' +
+          '<div class="result-head">' +
+            '<div>' +
+              '<div class="tracking-line">' + escapeHtml(r.tracking) + '</div>' +
+              carrierTag + liveTag +
+            '</div>' +
+          '</div>' +
+
+          '<div class="status-block clickable ' + meta.cls + '" id="status-block" ' +
+                'role="button" tabindex="0" ' +
+                'onclick="toggleJourney()" ' +
+                'onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();toggleJourney();}">' +
+            '<div class="status-icon">' + meta.icon + '</div>' +
+            '<div class="status-label">' +
+              escapeHtml(r.status || "Unknown") +
+              ' <span class="chevron">▾</span>' +
+            '</div>' +
+            (meta.sub ? '<div class="status-sub">' + escapeHtml(meta.sub) + '</div>' : "") +
+            '<span class="click-hint">▸ Click to view full shipment journey</span>' +
+          '</div>' +
+
+          // Estimated Delivery hero — TOP of result.
+          // Shows BOTH the courier's own predicted date AND Custimoo's AI prediction
+          // (when available) so the customer gets the most accurate picture.
+          (function () {
+            if (isDelivered) return "";
+
+            // 1) Courier date (from API + Hour.gs sheet fallback, handled server-side)
+            var courierDate = null;
+            if (r.estimatedDeliveryDate) {
+              var cd = new Date(r.estimatedDeliveryDate);
+              if (!isNaN(cd.getTime())) courierDate = cd;
+            }
+
+            // 2) Custimoo predicted date = (pickup OR order create) + typical days
+            var custimooDate = null;
+            if (r.typicalDeliveryDays) {
+              var base = r.pickupDate || r.orderCreateDate;
+              var bd = base ? new Date(base) : null;
+              if (!bd || isNaN(bd.getTime())) bd = new Date();
+              custimooDate = new Date(bd.getTime() + r.typicalDeliveryDays * 86400000);
+            }
+
+            // Pick primary date — prefer courier, otherwise Custimoo
+            var primary = courierDate || custimooDate;
+            if (!primary) return "";
+            var primaryLabel = courierDate ? "as predicted by the courier" : "Custimoo AI generated delivery date";
+
+            // Hero sub-line removed — the Custimoo date is shown only in the Route Intelligence section below.
+            var subLine = "";
+
+            return '<div class="eta-hero">' +
+                     '<div class="eta-icon">📅</div>' +
+                     '<div class="eta-text">' +
+                       '<div class="eta-label">Estimated Delivery</div>' +
+                       '<div class="eta-date">' + escapeHtml(fmtETA(primary.toISOString())) + '</div>' +
+                       '<div class="eta-source">' + escapeHtml(primaryLabel) + '</div>' +
+                       subLine +
+                     '</div>' +
+                   '</div>';
+          })() +
+          // Custimoo AI generated delivery date card — independent from courier ETA.
+          // Spec: show this as a separate card with its own source line.
+          (function () {
+            if (isDelivered) return "";
+            if (!r.typicalDeliveryDays) return "";
+            function _fmtMD(d) { try { return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); } catch (e) { return ""; } }
+            var custimooDate = null;
+            var base = r.pickupDate || r.orderCreateDate;
+            if (base) {
+              var pu = new Date(base);
+              if (!isNaN(pu.getTime())) custimooDate = new Date(pu.getTime() + r.typicalDeliveryDays * 86400000);
+            }
+            if (!custimooDate) custimooDate = new Date(Date.now() + r.typicalDeliveryDays * 86400000);
+            var dateStr = _fmtMD(custimooDate);
+            if (!dateStr) return "";
+            var tip = "AI-generated date based on historical Custimoo shipment performance for this city + carrier. Independent from the courier's own ETA.";
+            return '<div class="smart-eta-card">' +
+                     '<div class="smart-eta-icon">⚡</div>' +
+                     '<div class="smart-eta-text">' +
+                       '<div class="smart-eta-label">Custimoo AI generated delivery date ' +
+                         '<span class="info-icon" tabindex="0" role="button" aria-label="What is this?">i</span>' +
+                         '<span class="tooltip">' + escapeHtml(tip) + '</span>' +
+                       '</div>' +
+                       '<div class="smart-eta-value">' + escapeHtml(dateStr) + '</div>' +
+                       '<div class="smart-eta-sub">Source: comparable Custimoo shipments · ' + r.typicalDeliveryDays + ' day typical for this city + carrier</div>' +
+                     '</div>' +
+                   '</div>';
+          })() +
+          // Route Intelligence sits below.
+          '<div id="route-intel-slot"></div>' +
+          buildDestinationDetailsHtml(r) +
+          (infoHtml ? '<div class="info-grid">' + infoHtml + '</div>' : "") +
+          lastScanBanner +
+          '<div class="journey-collapsible" id="journey-wrap">' + buildJourneyHtml(r.events) + '</div>' +
+        '</div>';
+
+      // Fire route-intelligence lookup AFTER the main result renders.
+      loadRouteIntelligence(r.tracking);
+    }
+
+    /* ===== Route Intelligence ===== */
+    function loadRouteIntelligence(tn) {
+      var slot = document.getElementById("route-intel-slot");
+      if (!slot) return;
+      slot.innerHTML =
+        '<div class="route-intel">' +
+          '<div class="ri-title">Route intelligence <span class="ri-pill conf-none">Loading…</span></div>' +
+          '<div class="ri-empty">Looking up similar shipments…</div>' +
+        '</div>';
+      apiGet("route", { tn: tn }, function (res) {
+        if (!res || !res.ok) {
+          slot.innerHTML =
+            '<div class="route-intel">' +
+              '<div class="ri-title">Route intelligence</div>' +
+              '<div class="ri-empty">' + escapeHtml((res && res.error) || "Route intelligence unavailable.") + '</div>' +
+            '</div>';
+          return;
+        }
+        slot.innerHTML = buildRouteIntelHtml(res);
+        wireEvidenceDrawer(tn);
+      }, function () {
+        slot.innerHTML =
+          '<div class="route-intel">' +
+            '<div class="ri-title">Route intelligence</div>' +
+            '<div class="ri-empty">Could not load route intelligence right now.</div>' +
+          '</div>';
+      });
+    }
+
+    /* ===== Evidence drawer wiring ===== */
+    // Track the TN currently shown so the drawer fetches the right evidence.
+    var EV_TN = null;
+    var EV_LOADED = false;
+    function wireEvidenceDrawer(tn) {
+      EV_TN = tn; EV_LOADED = false;
+      var toggleBtn = document.getElementById("ri-ev-toggle");
+      var closeBtn  = document.getElementById("ri-ev-close");
+      var drawer    = document.getElementById("ri-ev-drawer");
+      if (!toggleBtn || !drawer) return;
+      var open = function () {
+        drawer.classList.add("open");
+        if (!EV_LOADED) loadEvidence(EV_TN);
+        try { drawer.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+      };
+      var close = function () { drawer.classList.remove("open"); };
+      toggleBtn.addEventListener("click", function () {
+        if (drawer.classList.contains("open")) close(); else open();
+      });
+      toggleBtn.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleBtn.click(); }
+      });
+      if (closeBtn) closeBtn.addEventListener("click", close);
+    }
+    function loadEvidence(tn) {
+      var body = document.getElementById("ri-ev-body");
+      if (!body) return;
+      body.innerHTML = '<div class="ri-empty">Loading evidence…</div>';
+      apiGet("evidence", { tn: tn, internal: IS_INTERNAL ? "1" : "0" }, function (res) {
+        EV_LOADED = true;
+        if (!res || !res.ok) {
+          body.innerHTML = '<div class="ri-empty">' + escapeHtml((res && res.error) || "Could not load comparable shipments.") + '</div>';
+          return;
+        }
+        var rows = res.matches || [];
+        if (!rows.length) {
+          body.innerHTML = '<div class="ri-empty">No comparable shipments returned.</div>';
+          return;
+        }
+          // Simplified evidence drawer — Tracking, Destination, Country, Carrier, Delivered (with days)
+          var html =
+            '<table class="ri-evidence-table"><thead><tr>' +
+              '<th>Tracking</th>' +
+              '<th>Destination</th>' +
+              '<th>Province / State</th>' +
+              '<th>Country</th>' +
+              '<th>Carrier</th>' +
+              '<th>Delivered (transit days)</th>' +
+              '<th>Route</th>' +
+            '</tr></thead><tbody>';
+          rows.forEach(function (m, idx) {
+            var t = String(m.tracking || "");
+            // Full tracking shown to all viewers per product decision — gives the
+            // customer maximum confidence that comparable shipments are real.
+            var deliveredCell = m.delivered ? escapeHtml(fmtETA(m.delivered)) : '—';
+            if (m.transitDays != null) deliveredCell += ' <span style="color:#5b6166;font-size:11px;">(' + m.transitDays + ' day' + (m.transitDays === 1 ? '' : 's') + ')</span>';
+            // Route cell — hub journey from Journey Archive for this TN.
+            // Compact: first 2 + last hub with "…" in between when long.
+            var routeCell = '<span style="color:#9CA1A3;">—</span>';
+            if (Array.isArray(m.route) && m.route.length > 0) {
+              var r = m.route;
+              var compact = r.length <= 4
+                ? r.join(' → ')
+                : (r.slice(0, 2).join(' → ') + ' → … → ' + r[r.length - 1]);
+              var full = r.join(' → ');
+              routeCell = '<span title="' + escapeHtml(full) + '" style="font-size:11.5px;color:#1FB089;cursor:help;">' +
+                          escapeHtml(compact) + '</span>';
+            }
+            html +=
+              '<tr>' +
+                '<td class="ev-tn">' + escapeHtml(t) + '</td>' +
+                '<td>' + escapeHtml(m.city || "—") + '</td>' +
+                '<td>' + escapeHtml(m.state || "—") + '</td>' +
+                '<td>' + escapeHtml(m.country || "—") + '</td>' +
+                '<td>' + escapeHtml(m.carrier || "—") + '</td>' +
+                '<td>' + deliveredCell + '</td>' +
+                '<td>' + routeCell + '</td>' +
+              '</tr>';
+          });
+          html += '</tbody></table>' +
+            '<div class="ri-evidence-summary" style="margin-top:10px;">' +
+              '<strong>' + rows.length + '</strong> comparable shipments used in this estimate.' +
+            '</div>';
+        body.innerHTML = html;
+      }, function (err) {
+        body.innerHTML = '<div class="ri-empty">Evidence lookup failed: ' + escapeHtml((err && err.message) || String(err)) + '</div>';
+      });
+    }
+
+    function buildRouteIntelHtml(res) {
+      var ev = Array.isArray(res.events) ? res.events.slice() : [];
+      // Sort actual check-ins NEWEST FIRST — latest activity at the top.
+      ev.sort(function (a, b) {
+        var at = Date.parse(a.timestamp || 0) || 0;
+        var bt = Date.parse(b.timestamp || 0) || 0;
+        return bt - at;
+      });
+      var actualItems = ev.map(function (e, i) {
+        var fc = (i === 0) ? " first" : "";   // newest at top → mark as first
+        return '<div class="timeline-item ' + escapeHtml(e.category || "other") + fc + '">' +
+                 '<div class="tl-time">' + escapeHtml(e.timestamp ? fmtDate(e.timestamp) : "") + '</div>' +
+                 '<div class="tl-desc">' + escapeHtml(e.description || "—") + '<span class="ri-est-tag" style="background:#d1fae5;color:#1FB089;border:1px solid #6ee7b7;">Actual carrier check-in</span></div>' +
+                 (e.location ? '<div class="tl-loc">' + escapeHtml(e.location) + '</div>' : "") +
+               '</div>';
+      }).join("");
+      var actualBlock = actualItems
+        ? '<div class="ri-section-head"><span class="ri-pill solid">●●● Actual ' + escapeHtml(res.carrier || "Carrier") + ' check-ins (newest first)</span></div>' +
+          '<div class="timeline timeline-actual">' + actualItems + '</div>'
+        : '<div class="ri-empty">No carrier check-ins available yet.</div>';
+
+      var est = res.estimate || {};
+      var estBlock = "";
+      var confCls = "conf-" + (est.confidence || "none");
+
+      // Suppress all AI-route prediction surfaces once the shipment is delivered.
+      // Predicting "next hub" or "estimated route chain" is meaningless after delivery.
+      var curStatusLow = String(res.currentStatus || res.status || "").toLowerCase();
+      var isDelivered = curStatusLow.indexOf("delivered") > -1;
+
+      // Compute the "Currently at X · Next likely: Y → Z" banner ONCE — render it whether
+      // or not the archive has comparable shipments. Next location comes from the
+      // server-side _nextLikelyLocation mapping (status → location) which uses the
+      // last event's location + destination city/country fallback.
+      var here    = res.currentLocation ? escapeHtml(res.currentLocation) : "";
+      var nextLoc = est.nextLikelyLocation ? escapeHtml(est.nextLikelyLocation) : "";
+      var fallbackDest = res.destinationCity ? escapeHtml(res.destinationCity)
+                      : (res.destination ? escapeHtml(res.destination) : "");
+      var headingTo = nextLoc || fallbackDest;
+      // Live ETA refinement banner — kept off per product decision.
+      var liveEtaHtml = "";
+      var hubLine = "";
+
+      // Phase 11.12 — Restored predicted route chain WITH smart filters so we
+      // never show useless loops like "Lahore → Lahore".
+      //   • Self-loop guard:  drop hops where hub === previous hub (and === here)
+      //   • Sample-size guard: each hop's count must be ≥ 2 (1 shipment = noise)
+      //   • Direction sanity: drop hops outside destination country once the
+      //     parcel is already inside the destination country.
+      //   • Delivered guard: nothing to predict if shipment is already delivered.
+      var hubChainHtml = "";
+      if (!isDelivered && est.hubChain && est.hubChain.ok && Array.isArray(est.hubChain.chain) && est.hubChain.chain.length > 0) {
+        var hereLow = (here || "").toLowerCase().trim();
+        var destCountryLow = "";
+        if (res.country) {
+          var dcParts = String(res.country).split(",").map(function (s) { return s.trim().toLowerCase(); });
+          destCountryLow = dcParts[dcParts.length - 1] || "";
+        }
+        var seen = {};
+        var prev = hereLow;
+        var cleanChain = est.hubChain.chain.filter(function (hop) {
+          var hubLow = String(hop && hop.hub || "").toLowerCase().trim();
+          if (!hubLow) return false;
+          // Self-loop: skip when this hub equals the previous hub OR current location
+          if (hubLow === prev) return false;
+          if (hubLow === hereLow && prev === hereLow) return false;
+          if (seen[hubLow]) return false;  // de-duplicate within chain
+          // Sample size — at least 2 supporting shipments
+          if (hop.count != null && hop.count < 2) return false;
+          seen[hubLow] = true;
+          prev = hubLow;
+          return true;
+        });
+        if (cleanChain.length > 0) {
+          var hopsHtml = cleanChain.map(function (hop, i) {
+            var arrow = (i === 0 ? '' : ' <span style="color:#9CA1A3;">→</span> ');
+            return arrow + '<strong style="color:#1FB089;">' + escapeHtml(hop.hub || "?") + '</strong>';
+          }).join("");
+          var totalH = est.hubChain.totalHoursToDelivery;
+          var totalLabel = "";
+          if (totalH) {
+            if (totalH < 24) totalLabel = Math.round(totalH) + "h";
+            else totalLabel = (Math.round(totalH / 24 * 10) / 10) + " days";
+          }
+          hubChainHtml =
+            '<div style="margin-top:10px;padding:10px 14px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;font-size:12.5px;line-height:1.5;">' +
+              '<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:#5b6166;font-weight:700;margin-bottom:4px;">Predicted route chain</div>' +
+              '<div style="color:#111827;">' + (here ? '<strong>' + here + '</strong> <span style="color:#9CA1A3;">→</span> ' : '') + hopsHtml + '</div>' +
+              (totalLabel ? '<div style="font-size:11px;color:#5b6166;margin-top:3px;">Total estimated time across chain: <strong>' + escapeHtml(totalLabel) + '</strong></div>' : '') +
+            '</div>';
+        }
+      }
+
+      // Hide the "Currently at / Next likely" banner once shipment is delivered —
+      // nothing meaningful to predict.
+      var nextLikely = (!isDelivered && est.nextLikelyStatus)
+        ? '<div class="ri-next">' +
+            (here ? '<div style="font-size:11.5px;color:#5b6166;font-weight:500;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Currently at: ' + here + '</div>' : '') +
+            '⏭ <strong>Next likely:</strong> ' + escapeHtml(est.nextLikelyStatus) +
+            (headingTo ? ' <span style="color:#5b6166;font-weight:500;">→ ' + headingTo + '</span>' : '') +
+            hubLine +
+            hubChainHtml +
+            liveEtaHtml +
+          '</div>'
+        : (hubChainHtml || liveEtaHtml
+            ? '<div class="ri-next">' + hubChainHtml + liveEtaHtml + '</div>'
+            : '');
+
+      // Once shipment is delivered, suppress the ENTIRE AI-estimated section
+      // (Route Intelligence header pills + match summary + nextLikely banner +
+      // hub chain + Live ETA). User wants only the actual journey for delivered
+      // shipments — predictions are pointless once parcel has arrived.
+      if (isDelivered) {
+        return '<div class="route-intel">' +
+                 '<div class="ri-title">Route intelligence</div>' +
+                 actualBlock +
+               '</div>';
+      }
+
+      if (est.hasEstimate) {
+        var nextItems = (est.nextSteps || []).map(function (s) {
+          return '<div class="timeline-item">' +
+                   '<div class="tl-time">' + escapeHtml(s.expected ? "Expected " + s.expected : "") + '</div>' +
+                   '<div class="tl-desc">' + escapeHtml(s.label || "Next step") + '<span class="ri-est-tag">AI-estimated next step</span></div>' +
+                   (s.location ? '<div class="tl-loc">' + escapeHtml(s.location) + '</div>' : "") +
+                 '</div>';
+        }).join("");
+        // Custimoo AI estimate date is shown only in the dedicated card above,
+        // not in the Route Intelligence section head — keeps the section head clean.
+        var custimooNote = "";
+        // Match summary line + "View comparable shipments" link
+        var matchSummary = '';
+        if (est.matchCount) {
+          var matchLevelText = escapeHtml(est.matchLevel || "");
+          var sameCarrierTxt = (est.sameCarrierCount != null && est.sameCarrierCount !== est.matchCount)
+            ? ' (' + est.sameCarrierCount + ' on same carrier)' : '';
+          matchSummary =
+            '<div class="ri-evidence-summary">' +
+              'Based on <strong>' + est.matchCount + '</strong> comparable shipment' + (est.matchCount === 1 ? '' : 's') +
+              sameCarrierTxt + '. Match level: <strong>' + matchLevelText + '</strong>.' +
+              (est.avgTransitDays ? ' Average transit: <strong>' + est.avgTransitDays + ' days</strong>.' : '') +
+              ' <span class="ri-evidence-link" id="ri-ev-toggle" role="button" tabindex="0">View comparable shipments</span>' +
+            '</div>' +
+            '<div class="ri-evidence-drawer" id="ri-ev-drawer">' +
+              '<div class="ri-evidence-head">' +
+                '<span class="ri-evidence-title">Comparable shipments used in this estimate</span>' +
+                '<button type="button" class="ri-evidence-close" id="ri-ev-close">× Close</button>' +
+              '</div>' +
+              '<div id="ri-ev-body"><div class="ri-empty">Loading evidence…</div></div>' +
+            '</div>';
+        }
+
+        // Removed the dashed AI-estimated timeline block — the "Next likely" banner
+        // above already conveys what's needed. Keeps the section concise.
+        estBlock =
+          '<div class="ri-section-head" style="flex-wrap:wrap;gap:6px;">' +
+            '<span class="ri-pill dashed">--- AI-estimated next steps</span> ' +
+            '<span class="ri-pill ' + confCls + '">Confidence: ' + escapeHtml(est.confidence || "unknown") + '</span>' +
+            custimooNote +
+          '</div>' +
+          nextLikely +
+          matchSummary;
+      } else {
+        // No comparable shipments — show only the next-likely banner + small note.
+        // The dashed AI-estimated timeline ("Continuing journey", etc.) is suppressed.
+        var noDataNote =
+          '<div class="ri-evidence-summary" style="margin-top:6px;">' +
+            'Custimoo AI estimate unavailable for this destination. Showing courier ETA only because there are not enough comparable shipments in our archive yet.' +
+          '</div>';
+        estBlock =
+          '<div class="ri-section-head" style="flex-wrap:wrap;gap:6px;">' +
+            '<span class="ri-pill dashed">--- AI-estimated next steps</span> ' +
+            '<span class="ri-pill conf-low">Confidence: low</span>' +
+          '</div>' +
+          nextLikely +
+          noDataNote;
+        // Fallback timeline removed too — banner already explains the next step.
+      }
+
+      // AI-estimated section sits ABOVE the actual check-ins. The estimate is forward-looking
+      // (predicted next steps); placing it above the newest-first actual feed keeps the reading
+      // order: future → newest → older, which matches the user's mental model.
+      return '<div class="route-intel">' +
+               '<div class="ri-title">Route intelligence</div>' +
+               estBlock +
+               actualBlock +
+             '</div>';
+    }
+
+    function toggleJourney() {
+      var block = document.getElementById("status-block");
+      var wrap  = document.getElementById("journey-wrap");
+      if (!block || !wrap) return;
+      var expanded = wrap.classList.toggle("expanded");
+      block.classList.toggle("expanded", expanded);
+      // On expand, smooth-scroll the journey into view (especially useful on mobile
+      // where the journey would otherwise sit below the fold).
+      if (expanded) {
+        setTimeout(function () {
+          try { wrap.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) { wrap.scrollIntoView(true); }
+        }, 60);
+      }
+    }
+
+    var ACTIVE_REQUEST = 0;
+    var TIMEOUT_MS     = 30000;
+
+    function lookup() {
+      var input = document.getElementById("tn-input");
+      var btn   = document.getElementById("search-btn");
+      var tn    = (input.value || "").trim();
+      if (!tn) {
+        input.focus();
+        showError("Tracking number required", "Enter a tracking number to continue.");
+        return;
+      }
+
+      var requestId = ++ACTIVE_REQUEST;
+      btn.disabled = true; btn.textContent = "Searching...";
+      showLoading();
+
+      var timeoutHandle = setTimeout(function () {
+        if (requestId !== ACTIVE_REQUEST) return;
+        btn.disabled = false; btn.textContent = "Track";
+        showError(
+          "Search timed out",
+          "The carrier system took too long to respond. Please try again in a moment."
+        );
+        ACTIVE_REQUEST++;
+      }, TIMEOUT_MS);
+
+      apiGet("lookup", { tn: tn, internal: IS_INTERNAL ? "1" : "0" }, function (res) {
+        if (requestId !== ACTIVE_REQUEST) return;
+        clearTimeout(timeoutHandle);
+        btn.disabled = false; btn.textContent = "Track";
+        if (!res || !res.found) {
+          showError(
+            "Tracking number not found",
+            (res && res.error) || "We couldn't find that tracking number. Please check it and try again."
+          );
+          return;
+        }
+        showResult(res);
+      }, function (err) {
+        if (requestId !== ACTIVE_REQUEST) return;
+        clearTimeout(timeoutHandle);
+        btn.disabled = false; btn.textContent = "Track";
+        var msg = (err && err.message) ? err.message : String(err);
+        showError("Something went wrong", msg);
+      });
+    }
+
+    document.getElementById("search-form").addEventListener("submit", lookup);
+    document.getElementById("tn-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); lookup(); }
+    });
+
+    if (PREFILLED) {
+      document.getElementById("tn-input").value = PREFILLED;
+      lookup();
+    } else {
+      document.getElementById("tn-input").focus();
+    }
+  </script>
+
+</body>
+</html>

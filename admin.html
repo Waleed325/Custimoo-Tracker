@@ -1,0 +1,1629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Master Dashboard — Custimoo</title>
+  <meta name="theme-color" content="#1FB089">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #f3f4f6; color: #1f2937; font-size: 14px; }
+    body { min-height: 100vh; }
+
+    .top-header { background: linear-gradient(135deg, #1FB089 0%, #33DCAE 100%); color: #fff; padding: 22px 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+    .top-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .top-header h1 { font-size: 20px; font-weight: 700; letter-spacing: 0.2px; display: flex; align-items: center; gap: 10px; }
+    .top-header p { font-size: 12px; opacity: 0.85; margin-top: 2px; }
+    .brand-c { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; background: #fff; }
+    .brand-c svg { width: 26px; height: 26px; }
+    .reload-btn { background: rgba(255,255,255,0.18); color: #fff; border: 1px solid rgba(255,255,255,0.35); padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; transition: background 0.15s; }
+    .reload-btn:hover:not(:disabled) { background: rgba(255,255,255,0.28); }
+    .reload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .container { max-width: 1500px; margin: 0 auto; padding: 24px 28px; }
+
+    /* Tab strip */
+    .tabs { display: flex; gap: 4px; padding: 0 28px; background: #f9fafb; border-bottom: 1px solid #e5e7eb; flex-wrap: wrap; }
+    .tab-btn { background: transparent; border: none; padding: 14px 20px; cursor: pointer; font-size: 13px; font-weight: 600; color: #5b6166; border-bottom: 3px solid transparent; transition: all 0.15s; letter-spacing: 0.2px; }
+    .tab-btn:hover { color: #1FB089; background: #fff; }
+    .tab-btn.active { color: #1FB089; border-bottom-color: #33DCAE; background: #fff; }
+    .tab-panel[hidden] { display: none; }
+    .csm-banner { display: inline-block; padding: 4px 12px; border-radius: 5px; background: #f3f4f6; color: #5b6166; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; margin-bottom: 12px; }
+
+    /* Top single-tracking search bar */
+    .search-jump {
+      background: #fff; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    }
+    .search-jump input {
+      flex: 1 1 300px; padding: 10px 12px; border: 1.5px solid #e5e7eb; border-radius: 8px; font-size: 14px;
+      font-family: "Courier New", monospace; outline: none;
+    }
+    .search-jump input:focus { border-color: #33DCAE; box-shadow: 0 0 0 3px rgba(16,185,129,0.20); }
+    .search-jump button, .search-jump a#tn-jump-btn {
+      display: inline-block; padding: 10px 18px; background: #1FB089; color: #fff;
+      border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+      text-align: center; line-height: 20px;
+    }
+    .search-jump button:hover, .search-jump a#tn-jump-btn:hover { background: #1FB089; color: #fff; }
+    .search-jump a#tn-jump-btn.disabled { background: #9CA1A3; pointer-events: none; }
+    .search-jump .label { font-size: 12px; color: #5b6166; font-weight: 600; }
+
+    /* KPI cards */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .stat { background: #fff; border-radius: 10px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); border-left: 4px solid #5b6166; cursor: pointer; user-select: none; transition: transform 0.06s ease, box-shadow 0.15s ease; }
+    .stat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.10); transform: translateY(-1px); }
+    .stat:active { transform: translateY(0); }
+    .stat.kpi-active { background: #ecfdf5; box-shadow: 0 0 0 2px #33DCAE inset, 0 4px 12px rgba(31,176,137,0.18); }
+    .stat.kpi-active .label { color: #1FB089; }
+    /* Scope selector — Active / Closed / All */
+    .scope-bar { display: inline-flex; gap: 0; border: 1px solid #C5C9CB; border-radius: 8px; overflow: hidden; margin-left: auto; }
+    .scope-bar button { background: #fff; color: #5b6166; border: 0; padding: 7px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; transition: background 0.12s; }
+    .scope-bar button:hover { background: #f3f4f6; }
+    .scope-bar button.active { background: #1FB089; color: #fff; }
+    .scope-bar button + button { border-left: 1px solid #C5C9CB; }
+    .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #5b6166; font-weight: 600; }
+    .stat .value { font-size: 22px; font-weight: 700; color: #111827; margin-top: 2px; }
+    .stat.total           { border-left-color: #0f172a; }
+    .stat.transit         { border-left-color: #1FB089; }
+    .stat.outfor          { border-left-color: #33DCAE; }
+    .stat.pickup          { border-left-color: #1FB089; }
+    .stat.onhold          { border-left-color: #5b6166; }
+    .stat.clearance       { border-left-color: #5b6166; }
+    .stat.thirdparty      { border-left-color: #9CA1A3; }
+    .stat.returned        { border-left-color: #5b6166; }
+    .stat.other           { border-left-color: #5b6166; }
+
+    /* Toolbar */
+    .toolbar { background: #fff; border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .toolbar input, .toolbar select { padding: 8px 10px; border: 1px solid #C5C9CB; border-radius: 6px; font-size: 13px; background: #fff; color: #1f2937; outline: none; }
+    .toolbar input { flex: 1 1 220px; min-width: 200px; }
+    .toolbar input:focus, .toolbar select:focus { border-color: #33DCAE; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+    .toolbar .count { margin-left: auto; font-size: 12px; color: #5b6166; font-weight: 500; }
+    .clear-btn { background: #f3f4f6; color: #374151; border: 1px solid #C5C9CB; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .clear-btn:hover { background: #e5e7eb; }
+    .export-btn { background: #1FB089; color: #fff; border: 1px solid #1FB089; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
+    .export-btn:hover { background: #1FB089; }
+
+    /* Status chips (multi-select) */
+    .status-chips { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+    .status-chip { padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 12px; font-weight: 600; border: 1.5px solid transparent; user-select: none; transition: all 0.15s; background: #f3f4f6; color: #5b6166; }
+    .status-chip.active.chip-onhold     { background: #C5C9CB; color: #5b6166; border-color: #9CA1A3; }
+    .status-chip.active.chip-clearance  { background: #C5C9CB; color: #5b6166; border-color: #9CA1A3; }
+    .status-chip.active.chip-thirdparty { background: #C5C9CB; color: #5b6166; border-color: #9CA1A3; }
+    .status-chip.active.chip-transit    { background: #d1fae5; color: #1FB089; border-color: #6ee7b7; }
+    .status-chip.active.chip-outfor     { background: #a7f3d0; color: #1FB089; border-color: #33DCAE; }
+    .status-chip.active.chip-pickup     { background: #ecfdf5; color: #1FB089; border-color: #6ee7b7; }
+    .status-chip.active.chip-other      { background: #f3f4f6; color: #374151; border-color: #C5C9CB; }
+    .status-chip:hover { filter: brightness(0.96); }
+
+    /* Table */
+    .table-wrap { background: #fff; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    thead th { position: sticky; top: 0; background: #f9fafb; color: #374151; font-weight: 600; text-align: left; padding: 12px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #e5e7eb; cursor: pointer; user-select: none; white-space: nowrap; }
+    thead th:hover { background: #f3f4f6; }
+    thead th .arrow { font-size: 10px; opacity: 0.5; margin-left: 4px; }
+    thead th.sorted .arrow { opacity: 1; color: #1FB089; }
+
+    tbody td { padding: 11px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; vertical-align: middle; }
+    tbody tr.data-row { cursor: pointer; }
+    tbody tr.data-row:hover { background: #f9fafb; }
+    tbody tr.data-row.expanded { background: #ecfdf5; }
+    tbody tr:last-child td { border-bottom: none; }
+
+    .tracking { font-family: "Courier New", monospace; font-weight: 700; color: #0f172a; font-size: 12.5px; }
+    .order-id { font-family: "Courier New", monospace; color: #374151; font-size: 12px; }
+
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; transition: filter 0.15s; }
+    .badge:hover { filter: brightness(0.92); }
+    .badge .chev { display: inline-block; font-size: 9px; margin-left: 3px; opacity: 0.65; transition: transform 0.2s; }
+    .data-row.expanded .badge .chev { transform: rotate(180deg); opacity: 1; }
+    .badge-onhold      { background: #C5C9CB; color: #5b6166; }
+    .badge-clearance   { background: #C5C9CB; color: #5b6166; }
+    .badge-thirdparty  { background: #C5C9CB; color: #5b6166; }
+    .badge-transit     { background: #d1fae5; color: #1FB089; }
+    .badge-atfacility  { background: #ecfdf5; color: #1FB089; border: 1px solid #a7f3d0; }
+    .badge-outfor      { background: #a7f3d0; color: #1FB089; }
+    .badge-pickup      { background: #ecfdf5; color: #1FB089; }
+    .badge-other       { background: #f3f4f6; color: #374151; }
+
+    .copy-tn-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; margin-left: 6px; background: transparent; border: 1px solid #C5C9CB; border-radius: 4px; color: #5b6166; cursor: pointer; font-size: 11px; vertical-align: middle; }
+    .copy-tn-btn:hover { background: #f3f4f6; border-color: #9CA1A3; color: #1FB089; }
+    .copy-tn-btn.copied { background: #d1fae5; border-color: #6ee7b7; color: #1FB089; }
+
+    .age-chip { display: inline-block; padding: 3px 9px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .age-fresh { background: #d1fae5; color: #1FB089; }
+    .age-warn  { background: #C5C9CB; color: #5b6166; }
+    .age-stale { background: #C5C9CB; color: #5b6166; }
+    .age-unknown { background: #f3f4f6; color: #5b6166; }
+
+    .carrier-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; }
+    .carrier-DHL   { background: #C5C9CB; color: #5b6166; }
+    .carrier-FEDEX { background: #f3f4f6; color: #5b6166; }
+
+    .region-chip { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+    .region-Canada { background: #C5C9CB; color: #5b6166; }
+    .region-USA    { background: #d1fae5; color: #5b6166; }
+    .region-Other  { background: #f3f4f6; color: #374151; }
+    .order-ref { font-family: "Courier New", monospace; color: #1FB089; font-size: 12px; }
+
+    .remark-cell { max-width: 280px; white-space: pre-wrap; color: #5b6166; font-size: 12.5px; cursor: text; }
+    .remark-cell:hover { background: #f9fafb; outline: 1px dashed #9CA1A3; outline-offset: -1px; }
+    .remark-cell.saving { background: #f3f4f6; }
+    .remark-cell.saved  { background: #ecfdf5; outline: 1px solid #6ee7b7; outline-offset: -1px; transition: background 0.5s, outline 0.5s; }
+    .remark-cell.error  { background: #f3f4f6; outline: 1px solid #9CA1A3; outline-offset: -1px; }
+    .remark-cell:focus  { background: #fff; outline: 2px solid #33DCAE; outline-offset: -2px; box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+
+    /* Inline journey row */
+    tr.journey-row { background: #f8fafc; }
+    tr.journey-row td { padding: 0; border-bottom: 1px solid #e5e7eb; }
+    .journey-content { padding: 18px 22px; max-height: 540px; overflow-y: auto; }
+    .jc-header { font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: #5b6166; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; }
+    .jc-loading { display: flex; align-items: center; gap: 10px; color: #5b6166; font-size: 13px; padding: 8px 0; }
+    .mini-spinner { width: 16px; height: 16px; border: 2px solid #e5e7eb; border-top-color: #1FB089; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .timeline { position: relative; }
+    .timeline-item { position: relative; padding: 0 0 16px 26px; margin-left: 6px; }
+    .timeline-item::after { content: ""; position: absolute; left: 0; top: 12px; bottom: -2px; width: 2px; background: #e5e7eb; }
+    .timeline-item:last-child::after { display: none; }
+    .timeline-item::before { content: ""; position: absolute; left: -5px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: #C5C9CB; border: 2px solid #f8fafc; box-shadow: 0 0 0 1px #C5C9CB; }
+    .timeline-item.first::before { width: 14px; height: 14px; left: -6px; background: #1FB089; box-shadow: 0 0 0 1px #1FB089, 0 0 0 4px rgba(5, 150, 105, 0.2); }
+    .timeline-item.delivered::before        { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.out_for_delivery::before { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.in_transit::before       { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .timeline-item.customs::before          { background: #5b6166; box-shadow: 0 0 0 1px #5b6166; }
+    .timeline-item.exception::before        { background: #5b6166; box-shadow: 0 0 0 1px #5b6166; }
+    .timeline-item.pickup::before           { background: #1FB089; box-shadow: 0 0 0 1px #1FB089; }
+    .tl-time { font-size: 12px; color: #5b6166; font-weight: 500; }
+    .tl-desc { font-size: 13px; color: #111827; margin-top: 2px; font-weight: 500; line-height: 1.4; }
+    .tl-loc  { font-size: 12px; color: #5b6166; margin-top: 2px; }
+    .jc-empty { color: #9CA1A3; font-style: italic; padding: 8px 0; }
+
+    .empty   { text-align: center; padding: 60px 20px; color: #5b6166; font-style: italic; }
+    .loading { text-align: center; padding: 60px 20px; color: #5b6166; }
+    .spinner { width: 28px; height: 28px; margin: 0 auto 12px; border: 3px solid #e5e7eb; border-top-color: #1FB089; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer { text-align: center; color: #9CA1A3; font-size: 12px; padding: 24px 0 8px; }
+    .error { background: #f3f4f6; color: #5b6166; border: 1px solid #C5C9CB; padding: 12px 14px; border-radius: 8px; margin-bottom: 14px; font-size: 13px; }
+
+    /* ----- Inline track result card (merged from Track page) ----- */
+    .track-result { background: #fff; border-radius: 14px; padding: 22px; box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); margin-bottom: 18px; animation: tr-fade 0.25s ease; }
+    @keyframes tr-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .tr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; margin-bottom: 16px; }
+    .tr-tn { font-family: "Courier New", monospace; font-weight: 700; color: #0f172a; font-size: 16px; letter-spacing: 0.4px; }
+    .tr-close { background: #f3f4f6; color: #5b6166; border: 1px solid #C5C9CB; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; }
+    .tr-close:hover { background: #e5e7eb; }
+
+    .tr-status { text-align: center; padding: 18px 16px; border-radius: 12px; margin-bottom: 14px; cursor: pointer; user-select: none; transition: filter 0.15s; }
+    .tr-status:hover { filter: brightness(0.97); }
+    .tr-status .icon { font-size: 30px; line-height: 1; margin-bottom: 6px; }
+    .tr-status .label { font-size: 18px; font-weight: 700; }
+    .tr-status .sub { font-size: 12px; margin-top: 6px; opacity: 0.88; }
+    .tr-status .chev { display: inline-block; margin-left: 6px; font-size: 14px; transition: transform 0.2s; opacity: 0.7; }
+    .tr-status.expanded .chev { transform: rotate(180deg); }
+    .s-delivered { background: #ecfdf5; color: #1FB089; }
+    .s-onbrand   { background: #d1fae5; color: #1FB089; }
+    .s-neutral   { background: #f3f4f6; color: #5b6166; }
+
+    .tr-eta { display: flex; align-items: center; gap: 14px; padding: 14px 18px; margin-bottom: 14px; background: linear-gradient(135deg, #1FB089 0%, #33DCAE 100%); border-radius: 12px; color: #fff; }
+    .tr-eta .ico { font-size: 26px; line-height: 1; }
+    .tr-eta .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; opacity: 0.92; font-weight: 600; }
+    .tr-eta .dt  { font-size: 18px; font-weight: 700; line-height: 1.2; }
+    .tr-eta .src { font-size: 11px; opacity: 0.85; margin-top: 2px; }
+
+    .tr-info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .tr-info-grid .info { background: #f9fafb; padding: 10px 14px; border-radius: 8px; }
+    .tr-info-grid .info .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #5b6166; font-weight: 600; }
+    .tr-info-grid .info .val { font-size: 13px; color: #111827; font-weight: 500; word-break: break-word; }
+
+    .tr-journey-wrap { display: none; margin-top: 8px; padding-top: 18px; border-top: 1px solid #f3f4f6; }
+    .tr-journey-wrap.expanded { display: block; }
+
+    .tr-loading { background: #fff; border-radius: 14px; padding: 32px 22px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 18px; }
+    .tr-loading .li { width: 30px; height: 30px; margin: 0 auto 12px; border: 3px solid #e5e7eb; border-top-color: #1FB089; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .tr-loading p  { color: #5b6166; font-size: 13px; }
+    .tr-err { background: #fff; border-radius: 14px; padding: 28px 22px; text-align: center; color: #5b6166; box-shadow: 0 4px 20px rgba(0,0,0,0.06); margin-bottom: 18px; }
+    .tr-err .et { font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+    .tr-err .em { font-size: 13px; }
+
+    /* Toast */
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+    .toast.show { opacity: 1; }
+    .toast.error { background: #5b6166; }
+    .toast.success { background: #1FB089; }
+  </style>
+</head>
+<body>
+
+  <header class="top-header">
+    <div class="top-row">
+      <div>
+        <h1>
+          <span class="brand-c">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img">
+              <path d="M 72 30 A 30 30 0 1 0 72 70 L 63 61 A 17 17 0 1 1 63 39 Z" fill="#0f172a"/>
+              <path d="M 72 72 H 86 A 7 7 0 0 1 72 72 Z" fill="#33DCAE" transform="rotate(-15 79 75.5)"/>
+            </svg>
+          </span>
+          Master Dashboard
+        </h1>
+        <p id="last-updated">Loading…</p>
+      </div>
+      <button id="reload" class="reload-btn">Reload</button>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="all"      role="tab">All Orders</button>
+    <button class="tab-btn"        data-tab="track"    role="tab">Track a Parcel</button>
+    <button class="tab-btn"        data-tab="csm-ca"   role="tab">CSM Canada</button>
+    <button class="tab-btn"        data-tab="csm-us"   role="tab">CSM USA</button>
+    <button class="tab-btn"        data-tab="insights" role="tab">Insights</button>
+  </nav>
+
+  <div class="container">
+
+    <!-- TRACK A PARCEL TAB -->
+    <section class="tab-panel" data-tab="track" hidden>
+      <div class="search-jump">
+        <span class="label">Track a tracking number:</span>
+        <input type="text" id="tn-jump" placeholder="Enter any tracking number…" autocomplete="off" spellcheck="false">
+        <button id="tn-jump-btn">Track</button>
+      </div>
+      <div id="track-result-area"></div>
+    </section>
+
+    <!-- INSIGHTS TAB -->
+    <section class="tab-panel" data-tab="insights" hidden>
+      <div id="insights-loading" style="padding:40px;text-align:center;color:#5b6166;">Loading insights…</div>
+      <div id="insights-content" style="display:none;">
+        <!-- Period Comparison (delivered-only) -->
+        <div style="background:#fff;border:1px solid #C5C9CB;border-radius:10px;padding:18px 22px;margin-bottom:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#5b6166;font-weight:700;margin-bottom:4px;">Period comparison</div>
+          <div style="font-size:11px;color:#9CA1A3;margin-bottom:12px;">Based on delivered shipments only.</div>
+          <table id="insights-periods" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid #E5E7EB;">
+                <th style="text-align:left;padding:10px 8px;color:#5b6166;font-weight:600;">Metric</th>
+                <th style="text-align:right;padding:10px 8px;color:#5b6166;font-weight:600;" id="ip-this-week">This week</th>
+                <th style="text-align:right;padding:10px 8px;color:#5b6166;font-weight:600;" id="ip-last-week">Last week</th>
+                <th style="text-align:right;padding:10px 8px;color:#5b6166;font-weight:600;" id="ip-same-month">Same week last month</th>
+              </tr>
+            </thead>
+            <tbody id="insights-periods-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Carrier Scorecard (delivered-only) -->
+        <div style="background:#fff;border:1px solid #C5C9CB;border-radius:10px;padding:18px 22px;margin-bottom:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#5b6166;font-weight:700;margin-bottom:4px;">Carrier scorecard</div>
+          <div style="font-size:11px;color:#9CA1A3;margin-bottom:12px;">Based on delivered shipments only.</div>
+          <table id="insights-carriers" style="width:100%;border-collapse:collapse;font-size:13px;">
+            <thead>
+              <tr style="border-bottom:1px solid #E5E7EB;">
+                <th style="text-align:left;padding:10px 8px;color:#5b6166;font-weight:600;">Carrier</th>
+                <th style="text-align:right;padding:10px 8px;color:#5b6166;font-weight:600;">Delivered</th>
+                <th style="text-align:right;padding:10px 8px;color:#5b6166;font-weight:600;">Avg transit</th>
+              </tr>
+            </thead>
+            <tbody id="insights-carriers-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Carrier-wise Average Delivery Time -->
+        <div style="background:#fff;border:1px solid #C5C9CB;border-radius:10px;padding:18px 22px;margin-bottom:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#5b6166;font-weight:700;margin-bottom:4px;">Carrier-wise average delivery time</div>
+          <div style="font-size:11px;color:#9CA1A3;margin-bottom:14px;">Avg days from pickup → delivery, per carrier.</div>
+          <div id="insights-carrierwise-chart"></div>
+        </div>
+
+        <!-- Province-wise Average Delivery Time -->
+        <div style="background:#fff;border:1px solid #C5C9CB;border-radius:10px;padding:18px 22px;margin-bottom:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#5b6166;font-weight:700;margin-bottom:4px;">Province / State-wise average delivery time</div>
+          <div style="font-size:11px;color:#9CA1A3;margin-bottom:14px;">Avg days from pickup → delivery, per destination province / state (min 2 per province).</div>
+          <div id="insights-provincewise-chart"></div>
+        </div>
+
+        <!-- City-wise Average Delivery Time -->
+        <div style="background:#fff;border:1px solid #C5C9CB;border-radius:10px;padding:18px 22px;margin-bottom:16px;">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#5b6166;font-weight:700;margin-bottom:4px;">City-wise average delivery time</div>
+          <div style="font-size:11px;color:#9CA1A3;margin-bottom:14px;">Avg days from pickup → delivery, per destination city (delivered shipments, min 2 per city).</div>
+          <div id="insights-citywise-chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ALL ORDERS / CSM CANADA / CSM USA TABS share this data panel -->
+    <section class="tab-panel" data-tab="data">
+    <div id="csm-banner-wrap"></div>
+
+    <div id="error" class="error" style="display:none;"></div>
+
+    <!-- Scope selector (Active / Closed / All) -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <span style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#5b6166;font-weight:700;">Shipment scope</span>
+      <div class="scope-bar" id="scope-bar" role="tablist">
+        <button type="button" data-scope="active" class="active" role="tab">Active</button>
+        <button type="button" data-scope="closed" role="tab">Closed</button>
+        <button type="button" data-scope="all"    role="tab">All</button>
+      </div>
+    </div>
+
+    <!-- KPIs (click to filter by that status). data-csm="1" cards stay visible on CSM tabs. -->
+    <div class="stats">
+      <div class="stat total kpi-active"  data-kpi="all"            data-csm="1"><div class="label">Total Active</div>      <div class="value" id="kpi-total">–</div></div>
+      <div class="stat transit"           data-kpi="in transit">                  <div class="label">In Transit</div>       <div class="value" id="kpi-transit">–</div></div>
+      <div class="stat outfor"            data-kpi="out for delivery">            <div class="label">Out for Delivery</div> <div class="value" id="kpi-outfor">–</div></div>
+      <div class="stat pickup"            data-kpi="picked up">                   <div class="label">Picked Up</div>        <div class="value" id="kpi-pickup">–</div></div>
+      <div class="stat pickup"            data-kpi="shipment booked">             <div class="label">Shipment Booked</div>  <div class="value" id="kpi-booked">–</div></div>
+      <div class="stat clearance"         data-kpi="in clearance"   data-csm="1"><div class="label">In Clearance</div>     <div class="value" id="kpi-clearance">–</div></div>
+      <div class="stat onhold"            data-kpi="on hold"        data-csm="1"><div class="label">On Hold</div>          <div class="value" id="kpi-onhold">–</div></div>
+      <div class="stat thirdparty"        data-kpi="third party"    data-csm="1"><div class="label">Third Party</div>      <div class="value" id="kpi-thirdparty">–</div></div>
+      <div class="stat returned"          data-kpi="returned">                    <div class="label">Returned</div>         <div class="value" id="kpi-returned">–</div></div>
+      <div class="stat transit"           data-kpi="at facility" title="Arrived / Processed / Unloaded — at a hub but not moving"><div class="label">At Facility</div><div class="value" id="kpi-atfacility">–</div></div>
+      <div class="stat other"             data-kpi="other">                       <div class="label">Other</div>            <div class="value" id="kpi-other">–</div></div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <input type="text" id="search" placeholder="Search tracking, order ID, customer, remark…">
+      <div class="status-chips" id="status-chips" title="Click to toggle">
+        <span class="status-chip active chip-transit"    data-status="in transit">In Transit</span>
+        <span class="status-chip active chip-transit"    data-status="at facility" title="Arrived / Processed / Unloaded">At Facility</span>
+        <span class="status-chip active chip-outfor"     data-status="out for delivery">Out for Delivery</span>
+        <span class="status-chip active chip-pickup"     data-status="picked up">Picked Up</span>
+        <span class="status-chip active chip-pickup"     data-status="shipment booked" title="Shipment label created / info received">Shipment Booked</span>
+        <span class="status-chip active chip-clearance"  data-status="in clearance">In Clearance</span>
+        <span class="status-chip active chip-onhold"     data-status="on hold">On Hold</span>
+        <span class="status-chip active chip-thirdparty" data-status="third party">Third Party</span>
+      </div>
+      <select id="filter-carrier">
+        <option value="">All carriers</option>
+        <option value="DHL">DHL</option>
+        <option value="FEDEX">FedEx</option>
+      </select>
+      <select id="filter-region" title="Filter by destination">
+        <option value="">All destinations</option>
+        <option value="Canada">Canada</option>
+        <option value="USA">USA</option>
+        <option value="Other">Other</option>
+      </select>
+      <select id="filter-customer" title="Filter by customer">
+        <option value="">All customers</option>
+      </select>
+      <input type="date" id="filter-from" title="From date (timestamp or delivered)" style="padding:8px 10px;border:1px solid #C5C9CB;border-radius:6px;font-size:12px;background:#fff;color:#1f2937;">
+      <input type="date" id="filter-to" title="To date" style="padding:8px 10px;border:1px solid #C5C9CB;border-radius:6px;font-size:12px;background:#fff;color:#1f2937;">
+      <button class="clear-btn" id="clear-filters">Clear</button>
+      <button class="export-btn" id="export-xlsx">⬇ Export Excel</button>
+      <span class="count" id="count">–</span>
+      <span class="count" id="count-clarifier" style="margin-left: 12px; color: #9CA1A3; font-style: italic;"></span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table id="ship-table">
+        <thead>
+          <tr>
+            <th data-sort="tracking">Tracking <span class="arrow">▾</span></th>
+            <th data-sort="orderId">Order ID <span class="arrow">▾</span></th>
+            <th data-sort="orderRef">Order Reference <span class="arrow">▾</span></th>
+            <th data-sort="status">Status <span class="arrow">▾</span></th>
+            <th data-sort="location">Current Location <span class="arrow">▾</span></th>
+            <th data-sort="destRegion">Region <span class="arrow">▾</span></th>
+            <th data-sort="destination">Destination <span class="arrow">▾</span></th>
+            <th data-sort="ageHours">Age <span class="arrow">▾</span></th>
+            <th data-sort="estimatedDeliveryDate">Courier ETA <span class="arrow">▾</span></th>
+            <th data-sort="custimooEtaDays" title="Custimoo AI generated delivery date — based on city + carrier history">Custimoo ETA <span class="arrow">▾</span></th>
+            <th data-sort="remark">Remark <span class="arrow">▾</span></th>
+            <th data-sort="customerName">Customer <span class="arrow">▾</span></th>
+            <th data-sort="carrier">Carrier <span class="arrow">▾</span></th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="13" class="loading"><div class="spinner"></div>Loading insight…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer">Pulled hourly from carrier APIs. Click any status to view full journey. Click the remark cell to edit.</div>
+    </section>
+  </div>
+
+
+  <script>
+    // Apps Script web app endpoint — called over plain HTTPS with `?api=...` for
+    // CORS-friendly JSON responses (no iframe sandbox).
+    var API_URL = "https://script.google.com/macros/s/AKfycbwx9_BB153l0U57v2gKvWG2xe72B5eUxNIbU1lUPCgQJE-xK-7m-fBDDtgWMj2Gkb2Xew/exec";
+    // For row-click navigation to the public tracker — same origin in this static
+    // deployment, so we link to index.html?tn=... (this site itself).
+    var WEB_APP_URL        = window.location.origin + window.location.pathname.replace(/admin\.html$/, "");
+    var PUBLIC_TRACKER_URL = window.location.origin + window.location.pathname.replace(/admin\.html$/, "") + "index.html";
+
+    // JSON GET helper — mirrors the google.script.run callback contract so the
+    // existing call sites stay readable: apiCall(name, params).withSuccess(...).withFailure(...).run()
+    // Returns a chainable object so we don't have to rewrite every site individually.
+    function apiCall(name, params) {
+      var onOk = null, onErr = null;
+      var obj = {
+        withSuccessHandler: function (fn) { onOk = fn; return obj; },
+        withFailureHandler: function (fn) { onErr = fn; return obj; },
+        run: function () {
+          var qs = "api=" + encodeURIComponent(name);
+          Object.keys(params || {}).forEach(function (k) {
+            var v = params[k];
+            if (v == null) return;
+            qs += "&" + encodeURIComponent(k) + "=" + encodeURIComponent(v);
+          });
+          fetch(API_URL + "?" + qs, { method: "GET", redirect: "follow", mode: "cors", credentials: "omit" })
+            .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+            .then(function (data) { try { onOk && onOk(data); } catch (e) { onErr && onErr(e); } })
+            .catch(function (err) { onErr && onErr(err); });
+        }
+      };
+      return obj;
+    }
+
+    var STATE = {
+      rows: [],
+      filtered: [],
+      sort: { key: "orderCreateDate", dir: -1 }, // newest order first
+      activeStatuses: { "in transit": true, "at facility": true, "out for delivery": true, "picked up": true, "shipment booked": true, "in clearance": true, "on hold": true, "third party": true, "other": true },
+      expandedTn: null,
+      journeyCache: {},
+      tab: "all",         // "all" | "track" | "csm-ca" | "csm-us"
+      scope: "active",    // "active" | "closed" | "all"
+      activeKpi: "all"    // currently-pressed KPI card key — also drives status chips
+    };
+
+    function switchTab(name) {
+      STATE.tab = name;
+      document.querySelectorAll(".tab-btn").forEach(function (b) {
+        b.classList.toggle("active", b.getAttribute("data-tab") === name);
+      });
+      var trackPanel    = document.querySelector('.tab-panel[data-tab="track"]');
+      var dataPanel     = document.querySelector('.tab-panel[data-tab="data"]');
+      var insightsPanel = document.querySelector('.tab-panel[data-tab="insights"]');
+      var isTrack    = (name === "track");
+      var isInsights = (name === "insights");
+      if (trackPanel)    trackPanel.hidden    = !isTrack;
+      if (insightsPanel) insightsPanel.hidden = !isInsights;
+      if (dataPanel)     dataPanel.hidden     =  isTrack || isInsights;
+      if (isInsights) loadInsights();
+      // Show CSM banner where appropriate
+      var banner = document.getElementById("csm-banner-wrap");
+      if (banner) {
+        if (name === "csm-ca")      banner.innerHTML = '<div class="csm-banner">CSM CANADA · PROBLEMS</div>';
+        else if (name === "csm-us") banner.innerHTML = '<div class="csm-banner">CSM USA · PROBLEMS</div>';
+        else                        banner.innerHTML = "";
+      }
+      // Hide non-CSM KPI cards on CSM tabs. Keep only data-csm="1" cards visible
+      // (Total Active, On Hold, In Clearance, Third Party).
+      var isCsm = name === "csm-ca" || name === "csm-us";
+      document.querySelectorAll(".stat[data-kpi]").forEach(function (card) {
+        if (isCsm && !card.hasAttribute("data-csm")) card.style.display = "none";
+        else card.style.display = "";
+      });
+      // Hide the toolbar filters CSM doesn't need — status chips, carrier dropdown,
+      // region dropdown (CSM is already region-scoped). Keep search, date range,
+      // customer filter, clear, export.
+      var csmHideIds = ["status-chips", "filter-carrier", "filter-region"];
+      csmHideIds.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.style.display = isCsm ? "none" : "";
+      });
+      // Update "Last Updated" label to use the tab's local TZ.
+      // All Orders → Copenhagen (Denmark, head office TZ)
+      // CSM Canada    → Toronto
+      // CSM USA       → Los Angeles (California)
+      try {
+        var lu = document.getElementById("last-updated");
+        if (lu) {
+          var fmtTab = function (tz, lbl) {
+            try { return new Intl.DateTimeFormat("en-GB", { timeZone: tz, day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date()) + " (" + lbl + ")"; }
+            catch (e) { return new Date().toLocaleString() + " (" + lbl + ")"; }
+          };
+          var tzLabel = name === "csm-ca" ? fmtTab("America/Toronto", "Toronto")
+                       : name === "csm-us" ? fmtTab("America/Los_Angeles", "California")
+                       : name === "all"    ? fmtTab("Europe/Copenhagen", "Copenhagen")
+                       : "";
+          if (tzLabel) {
+            var existing = lu.textContent || "";
+            var prefix = existing.split(" · Last Updated:")[0] || (STATE.rows.length + " active orders");
+            lu.textContent = prefix + " · Last Updated: " + tzLabel;
+          }
+        }
+      } catch (e) {}
+      if (!isTrack) {
+        populateCarrierFilter();
+        populateCustomerFilter();
+        applyFilters();
+      }
+      if (isTrack)  setTimeout(function () { var i = document.getElementById("tn-jump"); if (i) i.focus(); }, 50);
+    }
+
+    function badgeClass(status) {
+      var s = (status || "").toLowerCase();
+      if (s.indexOf("on hold") > -1)                                                                    return "badge-onhold";
+      if (s.indexOf("clearance") > -1)                                                                  return "badge-clearance";
+      if (s.indexOf("third party") > -1)                                                                return "badge-thirdparty";
+      if (s.indexOf("out for delivery") > -1)                                                           return "badge-outfor";
+      if (s.indexOf("in transit") > -1)                                                                 return "badge-transit";
+      if (/arrived at|processed at|unloaded|at local|shipment confirmed/.test(s))                       return "badge-atfacility";
+      if (s.indexOf("picked up") > -1 || s.indexOf("shipment booked") > -1)                             return "badge-pickup";
+      if (s.indexOf("delivered") > -1)                                                                  return "badge-outfor";
+      if (s.indexOf("returned") > -1 || s.indexOf("disposed") > -1)                                     return "badge-onhold";
+      return "badge-other";
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return "—";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+    }
+    function fmtFullDate(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+    }
+    function fmtETA(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" });
+    }
+    function escapeHtml(s) {
+      return String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+    }
+
+    /**
+     * Custimoo ETA chip — built from typicalDeliveryDays (city+carrier history) + pickupDate.
+     * Shows remaining days until expected delivery. Negative = overdue.
+     * Falls back to "Nd std" when no pickup date is available.
+     */
+    function renderCustimooEta(r) {
+      var typical = r.typicalDeliveryDays;
+      if (!typical) return '<span class="age-chip age-unknown" title="No historical data for this city/carrier">—</span>';
+      // Use pickup date if available; otherwise fall back to order create date so we always show a date.
+      var baseDate = r.pickupDate || r.orderCreateDate;
+      if (!baseDate) {
+        return '<span class="age-chip age-unknown" title="' + escapeHtml(typical + " day typical (no pickup or order date)") + '">' + escapeHtml(typical + "d typ") + '</span>';
+      }
+      var basedOnOrder = !r.pickupDate && !!r.orderCreateDate;
+      var p = new Date(baseDate);
+      if (isNaN(p.getTime())) return '<span class="age-chip age-unknown">—</span>';
+      var etaDate = new Date(p.getTime() + typical * 86400000);
+      var daysSince = (Date.now() - p.getTime()) / 86400000;
+      var remaining = Math.round(typical - daysSince);
+      var cls;
+      if (remaining > 1)        cls = "age-fresh";
+      else if (remaining === 1) cls = "age-fresh";
+      else if (remaining === 0) cls = "age-warn";
+      else                      cls = "age-stale";
+      r.custimooEtaDays = remaining;
+      var dateLabel = etaDate.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "2-digit" });
+      var subLabel = remaining > 0 ? ("in " + remaining + "d")
+                   : remaining === 0 ? "today"
+                   : (Math.abs(remaining) + "d overdue");
+      var title = typical + " day typical for this city + carrier — " + subLabel
+                + (basedOnOrder ? " (using order create date — pickup not yet recorded)" : "");
+      return '<span class="age-chip ' + cls + '" title="' + escapeHtml(title) + '">'
+             + escapeHtml(dateLabel) + (basedOnOrder ? '<span style="opacity:0.55;font-size:9px;margin-left:3px;">*</span>' : '')
+             + '</span>';
+    }
+
+    function renderAgeChip(ageHours) {
+      if (ageHours == null || isNaN(ageHours)) return '<span class="age-chip age-unknown">—</span>';
+      var label = ageHours < 1 ? "<1h" : (ageHours < 48 ? Math.round(ageHours) + "h" : Math.round(ageHours/24) + "d");
+      var cls = ageHours < 24 ? "age-fresh" : (ageHours < 72 ? "age-warn" : "age-stale");
+      return '<span class="age-chip ' + cls + '">' + label + '</span>';
+    }
+
+    function regionChip(rg) {
+      var label = rg || "—";
+      var cls   = (rg === "Canada" || rg === "USA") ? ("region-" + rg) : "region-Other";
+      return '<span class="region-chip ' + cls + '">' + escapeHtml(label) + '</span>';
+    }
+
+    function applyFilters() {
+      var q   = (document.getElementById("search").value || "").toLowerCase().trim();
+      var fCa = document.getElementById("filter-carrier").value;
+      var fRg = document.getElementById("filter-region").value;
+      var fCu = document.getElementById("filter-customer").value;
+      var fromEl = document.getElementById("filter-from");
+      var toEl   = document.getElementById("filter-to");
+      var fromMs = (fromEl && fromEl.value) ? new Date(fromEl.value + "T00:00:00").getTime() : 0;
+      var toMs   = (toEl   && toEl.value)   ? new Date(toEl.value   + "T23:59:59").getTime() : 0;
+      var now = Date.now();
+      STATE.rows.forEach(function (r) {
+        var t = r.timestamp ? new Date(r.timestamp).getTime() : NaN;
+        r.ageHours = isNaN(t) ? null : Math.max(0, (now - t) / 36e5);
+      });
+      // CSM tabs restricted to 3 problem statuses ONLY: On Hold, In Clearance, Third Party.
+      var forceRegion = STATE.tab === "csm-ca" ? "Canada" : (STATE.tab === "csm-us" ? "USA" : null);
+      var exceptionsOnly = STATE.tab === "csm-ca" || STATE.tab === "csm-us";
+
+      // In Closed scope, the status chips don't apply (closed shipments use different statuses
+      // like "Delivered" / "Returned" / "Disposed"). Filter by the active closed-KPI instead.
+      var inClosed = STATE.scope === "closed";
+      var closedKpi = inClosed ? STATE.activeKpi : null;
+
+      STATE.filtered = STATE.rows.filter(function (r) {
+        var sLow = (r.status || "").toLowerCase();
+        if (forceRegion && (r.destRegion || "") !== forceRegion) return false;
+        if (exceptionsOnly) {
+          var isExc = sLow.indexOf("on hold") > -1 || sLow.indexOf("in clearance") > -1 || sLow.indexOf("third party") > -1;
+          if (!isExc) return false;
+        }
+        // Closed-scope KPI filter (delivered/returned/disposed/cancelled/other)
+        if (inClosed && closedKpi && closedKpi !== "all") {
+          if (closedKpi === "delivered" && sLow.indexOf("delivered") === -1) return false;
+          if (closedKpi === "returned"  && sLow.indexOf("returned")  === -1) return false;
+          if (closedKpi === "disposed"  && sLow.indexOf("disposed")  === -1) return false;
+          if (closedKpi === "cancelled" && sLow.indexOf("cancel")    === -1) return false;
+          if (closedKpi === "other") {
+            // "other" means none of the above
+            var matched = (sLow.indexOf("delivered") > -1)
+                       || (sLow.indexOf("returned")  > -1)
+                       || (sLow.indexOf("disposed")  > -1)
+                       || (sLow.indexOf("cancel")    > -1);
+            if (matched) return false;
+          }
+        }
+        if (!inClosed) {
+          var anyActive = false, statusMatch = false;
+          var atFacilityRe = /(arrived at|processed at|unloaded|at local|shipment confirmed)/i;
+          // Synthetic "other" bucket — matches statuses that don't fit any specific category.
+          var specificBuckets = /(on hold|in clearance|third party|out for delivery|in transit|picked up|shipment booked|returned)/i;
+          Object.keys(STATE.activeStatuses).forEach(function (key) {
+            if (STATE.activeStatuses[key]) {
+              anyActive = true;
+              if (key === "at facility") { if (atFacilityRe.test(sLow)) statusMatch = true; }
+              else if (key === "in transit") { if (sLow.indexOf("in transit") > -1) statusMatch = true; }
+              else if (key === "other") { if (!specificBuckets.test(sLow) && !atFacilityRe.test(sLow)) statusMatch = true; }
+              else { if (sLow.indexOf(key) > -1) statusMatch = true; }
+            }
+          });
+          // Chip filter applies in BOTH all-orders AND CSM tabs — that way clicking
+          // "On Hold" KPI on CSM Canada drills down to only on-hold shipments instead
+          // of showing every exception type. Only skip when nothing is active.
+          if (anyActive && !statusMatch) return false;
+          if (!anyActive && !exceptionsOnly) return false;
+        }
+        if (fCa && (r.carrier || "").toUpperCase() !== fCa) return false;
+        if (fRg) {
+          var rg = r.destRegion || "";
+          if (fRg === "Other") { if (rg === "Canada" || rg === "USA" || rg === "") return false; }
+          else                 { if (rg !== fRg) return false; }
+        }
+        if (fCu && (r.customerName || "") !== fCu) return false;
+        // Date range filter — closed scope uses deliveredDate, active uses timestamp
+        if (fromMs || toMs) {
+          var rowDateRaw = r.deliveredDate || r.timestamp || r.pickupDate || "";
+          var rowMs = rowDateRaw ? new Date(rowDateRaw).getTime() : 0;
+          if (rowMs) {
+            if (fromMs && rowMs < fromMs) return false;
+            if (toMs   && rowMs > toMs)   return false;
+          } else if (fromMs || toMs) {
+            return false; // no date info; exclude when a range filter is active
+          }
+        }
+        if (q) {
+          var hay = [r.tracking, r.orderId, r.orderRef, r.status, r.customerName, r.remark, r.carrier, r.location, r.destination, r.destRegion].join(" ").toLowerCase();
+          if (hay.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+      recomputeKpis();
+      sortFiltered();
+      STATE.expandedTn = null;
+      renderTable();
+      // Tab-scoped denominator: CSM tabs count only the 3 problem statuses in that region.
+      var scopePool = STATE.rows;
+      if (STATE.tab === "csm-ca" || STATE.tab === "csm-us") {
+        var rg = STATE.tab === "csm-ca" ? "Canada" : "USA";
+        scopePool = STATE.rows.filter(function (r) {
+          if ((r.destRegion || "") !== rg) return false;
+          var sLow = (r.status || "").toLowerCase();
+          return sLow.indexOf("on hold") > -1 || sLow.indexOf("in clearance") > -1 || sLow.indexOf("third party") > -1;
+        });
+      }
+      document.getElementById("count").textContent = STATE.filtered.length + " of " + scopePool.length;
+      // Phase 1 #9 — clarifier label visible only on All Orders tab
+      var clarifier = document.getElementById("count-clarifier");
+      if (clarifier) clarifier.textContent = (STATE.tab === "all") ? "Showing actionable active shipments." : "";
+    }
+
+    function sortFiltered() {
+      var k = STATE.sort.key, dir = STATE.sort.dir;
+      STATE.filtered.sort(function (a, b) {
+        var av = a[k] || "", bv = b[k] || "";
+        if (k === "estimatedDeliveryDate" || k === "orderCreateDate" || k === "pickupDate" || k === "timestamp" || k === "deliveredDate") {
+          av = av ? new Date(av).getTime() || 0 : 0;
+          bv = bv ? new Date(bv).getTime() || 0 : 0;
+        } else if (k === "ageHours") {
+          av = av || 0; bv = bv || 0;
+        } else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
+        if (av < bv) return -1 * dir;
+        if (av > bv) return  1 * dir;
+        return 0;
+      });
+      document.querySelectorAll("thead th").forEach(function (th) {
+        th.classList.remove("sorted");
+        var arrow = th.querySelector(".arrow");
+        if (arrow) arrow.textContent = "▾";
+        if (th.getAttribute("data-sort") === k) {
+          th.classList.add("sorted");
+          if (arrow) arrow.textContent = dir === 1 ? "▴" : "▾";
+        }
+      });
+    }
+
+    function renderTable() {
+      var tbody = document.getElementById("tbody");
+      if (STATE.filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="13" class="empty">No orders match your filters.</td></tr>';
+        return;
+      }
+      var html = "";
+      STATE.filtered.forEach(function (r) {
+        var tn = r.tracking || "";
+        var carrierTag = r.carrier ? '<span class="carrier-tag carrier-' + escapeHtml(r.carrier.toUpperCase()) + '">' + escapeHtml(r.carrier) + '</span>' : "—";
+        var ageCell = renderAgeChip(r.ageHours);
+        var isExpanded = STATE.expandedTn === tn;
+        var remarkContent = (r.remark || "").length ? escapeHtml(r.remark) : "—";
+        html += '<tr class="data-row' + (isExpanded ? ' expanded' : '') + '" data-tn="' + escapeHtml(tn) + '">'
+          + '<td class="tracking">' + escapeHtml(tn) + '<button class="copy-tn-btn" data-copy-tn="' + escapeHtml(tn) + '" title="Copy">📋</button></td>'
+          + '<td class="order-id">' + escapeHtml(r.orderId || "—") + '</td>'
+          + '<td class="order-ref">' + escapeHtml(r.orderRef || "—") + '</td>'
+          + '<td><span class="badge ' + badgeClass(r.status) + '" data-tn="' + escapeHtml(tn) + '" role="button" tabindex="0" title="Click for journey">' + escapeHtml(r.status || "—") + ' <span class="chev">▾</span></span></td>'
+          + '<td>' + escapeHtml(r.location || "—") + '</td>'
+          + '<td>' + regionChip(r.destRegion) + '</td>'
+          + '<td>' + escapeHtml(r.destination || "—") + '</td>'
+          + '<td>' + ageCell + '</td>'
+          + '<td>' + escapeHtml(r.estimatedDeliveryDate ? fmtDate(r.estimatedDeliveryDate) : "—") + '</td>'
+          + '<td>' + renderCustimooEta(r) + '</td>'
+          + '<td class="remark-cell" contenteditable="true" data-edit-tn="' + escapeHtml(tn) + '" data-original="' + escapeHtml(r.remark || "") + '" title="Click to edit — saves on click-out">' + remarkContent + '</td>'
+          + '<td>' + escapeHtml(r.customerName || "—") + '</td>'
+          + '<td>' + carrierTag + '</td>'
+          + '</tr>';
+        if (isExpanded) {
+          html += '<tr class="journey-row"><td colspan="13"><div class="journey-content" id="journey-' + escapeHtml(tn) + '">' + renderJourney(tn) + '</div></td></tr>';
+        }
+      });
+      tbody.innerHTML = html;
+    }
+
+    function renderJourney(tn) {
+      var entry = STATE.journeyCache[tn];
+      if (!entry || entry.status === "loading") return '<div class="jc-loading"><div class="mini-spinner"></div>Loading journey for ' + escapeHtml(tn) + '…</div>';
+      if (entry.status === "error")             return '<div style="color:#5b6166;">' + escapeHtml(entry.error || "Could not load.") + '</div>';
+      var events = entry.events || [];
+      if (events.length === 0)                  return '<div class="jc-empty">No journey events yet.</div>';
+      var items = events.map(function (e, i) {
+        var fc = (i === 0) ? " first" : "";
+        return '<div class="timeline-item ' + escapeHtml(e.category || "other") + fc + '">'
+          + '<div class="tl-time">' + escapeHtml(e.timestamp ? fmtFullDate(e.timestamp) : "") + '</div>'
+          + '<div class="tl-desc">' + escapeHtml(e.description || "—") + '</div>'
+          + (e.location ? '<div class="tl-loc">' + escapeHtml(e.location) + '</div>' : "")
+          + '</div>';
+      }).join("");
+      return '<div class="jc-header"><span>Shipment Journey — ' + escapeHtml(tn) + '</span><span>' + events.length + ' event' + (events.length===1?"":"s") + '</span></div><div class="timeline">' + items + '</div>';
+    }
+
+    function toggleJourney(tn) {
+      if (!tn) return;
+      var was = STATE.expandedTn === tn;
+      STATE.expandedTn = was ? null : tn;
+      renderTable();
+      if (!was && (!STATE.journeyCache[tn] || STATE.journeyCache[tn].status === "error")) {
+        STATE.journeyCache[tn] = { status: "loading" };
+        apiCall("lookup", { tn: tn })
+          .withSuccessHandler(function (res) {
+            STATE.journeyCache[tn] = (res && res.found) ? { status: "loaded", events: res.events || [] } : { status: "error", error: (res && res.error) || "Failed." };
+            if (STATE.expandedTn === tn) renderTable();
+          })
+          .withFailureHandler(function (err) {
+            STATE.journeyCache[tn] = { status: "error", error: (err && err.message) || String(err) };
+            if (STATE.expandedTn === tn) renderTable();
+          })
+          .run();
+      }
+    }
+
+    function showToast(msg, type) {
+      var el = document.getElementById("toast");
+      if (!el) { el = document.createElement("div"); el.id = "toast"; el.className = "toast"; document.body.appendChild(el); }
+      el.textContent = msg;
+      el.className = "toast show " + (type || "");
+      setTimeout(function () { el.className = "toast " + (type || ""); }, 1800);
+    }
+
+    function copyTN(btn, tn) {
+      var done = function () {
+        btn.classList.add("copied");
+        var t = btn.textContent; btn.textContent = "✓";
+        setTimeout(function () { btn.classList.remove("copied"); btn.textContent = t; }, 1200);
+        showToast("Copied " + tn, "success");
+      };
+      try { navigator.clipboard.writeText(tn).then(done, function () { fbCopy(tn); done(); }); }
+      catch (e) { fbCopy(tn); done(); }
+    }
+    function fbCopy(text) {
+      var ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); } catch (_) {}
+      document.body.removeChild(ta);
+    }
+
+    function saveRemark(cell) {
+      var tn = cell.getAttribute("data-edit-tn");
+      var newVal = (cell.textContent || "").trim();
+      if (newVal === "—") newVal = "";
+      var orig = cell.getAttribute("data-original") || "";
+      if (newVal === orig) return;
+      cell.classList.remove("error","saved");
+      cell.classList.add("saving");
+      apiCall("remark", { tn: tn, v: newVal })
+        .withSuccessHandler(function (res) {
+          cell.classList.remove("saving");
+          if (res && res.ok) {
+            cell.classList.add("saved");
+            cell.setAttribute("data-original", newVal);
+            STATE.rows.forEach(function (r) { if (r.tracking === tn) r.remark = newVal; });
+            showToast("Remark saved", "success");
+            setTimeout(function () { cell.classList.remove("saved"); }, 800);
+          } else {
+            cell.classList.add("error"); cell.textContent = orig || "—";
+            showToast((res && res.error) || "Save failed", "error");
+          }
+        })
+        .withFailureHandler(function (err) {
+          cell.classList.remove("saving"); cell.classList.add("error"); cell.textContent = orig || "—";
+          showToast((err && err.message) || "Save failed", "error");
+        })
+        .run();
+    }
+
+    function exportXlsx() {
+      if (typeof XLSX === "undefined") {
+        showToast("Excel library still loading — try again in a moment", "error");
+        return;
+      }
+      if (!STATE.filtered.length) {
+        showToast("Nothing to export — no rows in current view", "error");
+        return;
+      }
+      showToast("Preparing export…", "");
+      var btn = document.getElementById("export-xlsx");
+      var oldText = btn.textContent;
+      btn.disabled = true; btn.textContent = "Preparing…";
+      try {
+      var headers = ["Tracking","Order ID","Order Reference","Status","Current Location","Region","Destination","Age (hours)","Courier ETA","Custimoo ETA (days remaining)","Typical Days","Remark","Customer","Carrier"];
+      var aoa = [headers];
+      STATE.filtered.forEach(function (r) {
+        aoa.push([
+          r.tracking || "",
+          r.orderId  || "",
+          r.orderRef || "",
+          r.status   || "",
+          r.location || "",
+          r.destRegion || "",
+          r.destination || "",
+          r.ageHours == null ? "" : Math.round(r.ageHours),
+          r.estimatedDeliveryDate ? fmtDate(r.estimatedDeliveryDate) : "",
+          r.custimooEtaDays == null ? "" : r.custimooEtaDays,
+          r.typicalDeliveryDays || "",
+          r.remark || "",
+          r.customerName || "",
+          r.carrier || ""
+        ]);
+      });
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      ws["!cols"] = [
+        {wch: 18}, {wch: 14}, {wch: 16}, {wch: 18}, {wch: 28},
+        {wch: 10}, {wch: 38}, {wch: 8},  {wch: 14}, {wch: 30},
+        {wch: 22}, {wch: 8}
+      ];
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Insight");
+      var name = "custimoo-insight-" + new Date().toISOString().substring(0,16).replace(/[:T]/g,"-") + ".xlsx";
+      XLSX.writeFile(wb, name);
+      showToast("Downloaded " + STATE.filtered.length + " rows", "success");
+      } catch (e) {
+        showToast("Export failed: " + ((e && e.message) || e), "error");
+      } finally {
+        btn.disabled = false; btn.textContent = oldText;
+      }
+    }
+
+    // Recompute KPI cards based on current tab + STATE.rows.
+    // In Closed scope, the counts are categorised differently (delivered/returned/disposed/cancelled/other)
+    // so we route through the same labels the closed-scope load applied.
+    function recomputeKpis() {
+      if (STATE.scope === "closed") {
+        var cc = { total: 0, delivered: 0, returned: 0, disposed: 0, cancelled: 0, other: 0 };
+        STATE.rows.forEach(function (r) {
+          var s = (r.status || "").toLowerCase();
+          cc.total++;
+          if      (s.indexOf("delivered") > -1) cc.delivered++;
+          else if (s.indexOf("returned")  > -1) cc.returned++;
+          else if (s.indexOf("disposed")  > -1) cc.disposed++;
+          else if (s.indexOf("cancel")    > -1) cc.cancelled++;
+          else                                  cc.other++;
+        });
+        document.getElementById("kpi-total").textContent      = cc.total;
+        document.getElementById("kpi-transit").textContent    = cc.delivered;
+        document.getElementById("kpi-outfor").textContent     = cc.returned;
+        document.getElementById("kpi-pickup").textContent     = cc.disposed;
+        document.getElementById("kpi-clearance").textContent  = cc.cancelled;
+        document.getElementById("kpi-onhold").textContent     = cc.other;
+        return;
+      }
+      var c = { total:0, inTransit:0, atFacility:0, outForDelivery:0, pickedUp:0, booked:0, inClearance:0, onHold:0, thirdParty:0, returned:0, other:0 };
+      var forceRegion = STATE.tab === "csm-ca" ? "Canada" : (STATE.tab === "csm-us" ? "USA" : null);
+      var exceptionsOnly = STATE.tab === "csm-ca" || STATE.tab === "csm-us";
+      var atFacilityRe = /(arrived at|processed at|unloaded|at local|shipment confirmed)/i;
+      STATE.rows.forEach(function (r) {
+        if (forceRegion && (r.destRegion || "") !== forceRegion) return;
+        var s = (r.status || "").toLowerCase();
+        var isExc = s.indexOf("on hold") > -1 || s.indexOf("in clearance") > -1 || s.indexOf("third party") > -1;
+        if (exceptionsOnly && !isExc) return;
+        c.total++;
+        if      (s.indexOf("on hold") > -1)       c.onHold++;
+        else if (s.indexOf("in clearance") > -1)  c.inClearance++;
+        else if (s.indexOf("third party") > -1)   c.thirdParty++;
+        else if (s.indexOf("out for delivery") > -1) c.outForDelivery++;
+        else if (s.indexOf("in transit") > -1)    c.inTransit++;
+        else if (atFacilityRe.test(s))            c.atFacility++;
+        else if (s.indexOf("shipment booked") > -1) c.booked++;
+        else if (s.indexOf("picked up") > -1)     c.pickedUp++;
+        else if (s.indexOf("returned") > -1)      c.returned++;
+        else                                      c.other++;
+      });
+      var totalLabel = (STATE.tab === "csm-ca" || STATE.tab === "csm-us") ? "Total Problems" : "Total Active";
+      var totalEl = document.querySelector('.stat.total .label');
+      if (totalEl) totalEl.textContent = totalLabel;
+      document.getElementById("kpi-total").textContent      = c.total;
+      document.getElementById("kpi-transit").textContent    = c.inTransit;
+      document.getElementById("kpi-outfor").textContent     = c.outForDelivery;
+      document.getElementById("kpi-pickup").textContent     = c.pickedUp;
+      document.getElementById("kpi-clearance").textContent  = c.inClearance;
+      document.getElementById("kpi-onhold").textContent     = c.onHold;
+      document.getElementById("kpi-thirdparty").textContent = c.thirdParty;
+      document.getElementById("kpi-returned").textContent   = c.returned;
+      var atFacEl = document.getElementById("kpi-atfacility");
+      if (atFacEl) atFacEl.textContent = c.atFacility;
+      var bookedEl = document.getElementById("kpi-booked");
+      if (bookedEl) bookedEl.textContent = c.booked;
+      document.getElementById("kpi-other").textContent      = c.other;
+    }
+
+    // Returns the row pool that matches the active tab's region/exception scope.
+    // Customer & carrier dropdowns are populated from this pool, so on CSM Canada you
+    // only see customers/carriers that have at least one row in that tab's scope.
+    function tabScopedRows() {
+      if (STATE.tab === "csm-ca" || STATE.tab === "csm-us") {
+        var rg = STATE.tab === "csm-ca" ? "Canada" : "USA";
+        return STATE.rows.filter(function (r) {
+          if ((r.destRegion || "") !== rg) return false;
+          var sLow = (r.status || "").toLowerCase();
+          return sLow.indexOf("on hold") > -1 || sLow.indexOf("in clearance") > -1 || sLow.indexOf("third party") > -1;
+        });
+      }
+      return STATE.rows;
+    }
+
+    function populateCustomerFilter() {
+      var sel = document.getElementById("filter-customer");
+      if (!sel) return;
+      var prev = sel.value;
+      var seen = {};
+      var names = [];
+      tabScopedRows().forEach(function (r) {
+        var n = (r.customerName || "").trim();
+        if (n && !seen[n]) { seen[n] = true; names.push(n); }
+      });
+      names.sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+      sel.innerHTML = '<option value="">All customers (' + names.length + ')</option>'
+        + names.map(function (n) { return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + '</option>'; }).join("");
+      if (prev && seen[prev]) sel.value = prev;
+      else                    sel.value = "";   // reset if prev customer not in this tab's scope
+    }
+
+    function populateCarrierFilter() {
+      var sel = document.getElementById("filter-carrier");
+      if (!sel) return;
+      var prev = sel.value;
+      var seen = {};
+      tabScopedRows().forEach(function (r) {
+        var c = (r.carrier || "").toUpperCase().trim();
+        if (c) seen[c] = true;
+      });
+      var opts = '<option value="">All carriers</option>';
+      if (seen["DHL"])   opts += '<option value="DHL">DHL</option>';
+      if (seen["FEDEX"]) opts += '<option value="FEDEX">FedEx</option>';
+      sel.innerHTML = opts;
+      if (prev && seen[prev]) sel.value = prev;
+      else                    sel.value = "";
+    }
+
+    function loadData(bust) {
+      var btn = document.getElementById("reload");
+      btn.disabled = true; btn.textContent = "Loading…";
+      document.getElementById("error").style.display = "none";
+      if (bust) showToast("Refreshing data…", "");
+      var scope = STATE.scope || "active";
+      var onSuccess = function (res) {
+          if (bust) showToast("Refreshed", "success");
+          STATE.rows = (res && res.rows) || [];
+          STATE.expandedTn = null; STATE.journeyCache = {};
+          var counts = (res && res.counts) || {};
+          if (scope === "closed") {
+            // Closed scope — relabel each card to map to a closed status
+            // and stash the kpi key + label as data-attrs so click-filter still works.
+            var closedMap = [
+              { id: "kpi-total",      key: "all",        label: "Total Closed", val: counts.total     || 0 },
+              { id: "kpi-transit",    key: "delivered",  label: "Delivered",    val: counts.delivered || 0 },
+              { id: "kpi-outfor",     key: "returned",   label: "Returned",     val: counts.returned  || 0 },
+              { id: "kpi-pickup",     key: "disposed",   label: "Disposed",     val: counts.disposed  || 0 },
+              { id: "kpi-clearance",  key: "cancelled",  label: "Cancelled",    val: counts.cancelled || 0 },
+              { id: "kpi-onhold",     key: "other",      label: "Other",        val: counts.other     || 0 },
+              { id: "kpi-thirdparty", key: "_hidden",    label: "",             val: 0 },
+              { id: "kpi-returned",   key: "_hidden",    label: "",             val: 0 },
+              { id: "kpi-other",      key: "_hidden",    label: "",             val: 0 }
+            ];
+            closedMap.forEach(function (m) {
+              var card  = document.querySelector('.stat [id="' + m.id + '"]');
+              if (card) card.textContent = m.val;
+              var stat  = card ? card.closest(".stat") : null;
+              if (stat) {
+                var labelEl = stat.querySelector(".label");
+                if (m.key === "_hidden") {
+                  stat.style.display = "none";
+                } else {
+                  stat.style.display = "";
+                  stat.setAttribute("data-kpi", m.key);
+                  if (labelEl) labelEl.textContent = m.label;
+                }
+              }
+            });
+          } else {
+            // Restore default card labels + visibility for non-closed scopes
+            var activeMap = [
+              { id: "kpi-total",      key: "all",                label: scope === "all" ? "Total Shipments" : "Total Active" },
+              { id: "kpi-transit",    key: "in transit",         label: "In Transit" },
+              { id: "kpi-outfor",     key: "out for delivery",   label: "Out for Delivery" },
+              { id: "kpi-pickup",     key: "picked up",          label: "Picked Up" },
+              { id: "kpi-clearance",  key: "in clearance",       label: "In Clearance" },
+              { id: "kpi-onhold",     key: "on hold",            label: "On Hold" },
+              { id: "kpi-thirdparty", key: "third party",        label: "Third Party" },
+              { id: "kpi-returned",   key: "returned",           label: "Returned" },
+              { id: "kpi-other",      key: "other",              label: "Other" }
+            ];
+            activeMap.forEach(function (m) {
+              var card = document.querySelector('.stat [id="' + m.id + '"]');
+              var stat = card ? card.closest(".stat") : null;
+              if (stat) {
+                stat.style.display = "";
+                stat.setAttribute("data-kpi", m.key);
+                var labelEl = stat.querySelector(".label");
+                if (labelEl) labelEl.textContent = m.label;
+              }
+            });
+            document.getElementById("kpi-total").textContent      = counts.total || 0;
+            document.getElementById("kpi-transit").textContent    = counts.inTransit || 0;
+            document.getElementById("kpi-outfor").textContent     = counts.outForDelivery || 0;
+            document.getElementById("kpi-pickup").textContent     = counts.pickedUp || 0;
+            document.getElementById("kpi-clearance").textContent  = counts.inClearance || 0;
+            document.getElementById("kpi-onhold").textContent     = counts.onHold || 0;
+            document.getElementById("kpi-thirdparty").textContent = counts.thirdParty || 0;
+            document.getElementById("kpi-returned").textContent   = counts.returned || 0;
+            // atFacility is computed client-side in recomputeKpis (server's counts schema
+            // doesn't include it yet). Leave the card at 0 here — recomputeKpis fills it.
+            var atFacEl0 = document.getElementById("kpi-atfacility"); if (atFacEl0) atFacEl0.textContent = 0;
+            document.getElementById("kpi-other").textContent      = counts.other || 0;
+          }
+          // Tab-aware time zone — CSM Canada → Toronto, CSM USA → California, else PKT.
+          function _fmtTab(tz, tzLabel) {
+            try {
+              var d = new Date();
+              var fmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: true });
+              return fmt.format(d) + " (" + tzLabel + ")";
+            } catch (e) { return new Date().toLocaleString() + " (" + tzLabel + ")"; }
+          }
+          var label;
+          if (STATE.tab === "csm-ca")      label = _fmtTab("America/Toronto",     "Toronto");
+          else if (STATE.tab === "csm-us") label = _fmtTab("America/Los_Angeles", "California");
+          else                              label = _fmtTab("Europe/Copenhagen",  "Copenhagen");
+          var scopeLabel = scope === "closed" ? "closed shipments" : (scope === "all" ? "shipments (all scopes)" : "active orders");
+          document.getElementById("last-updated").textContent = STATE.rows.length + " " + scopeLabel + " · Last Updated: " + (label || "just now");
+          // Total-active card label adapts to scope
+          var totalEl = document.querySelector('.stat.total .label');
+          if (totalEl) totalEl.textContent = scope === "closed" ? "Total Closed" : (scope === "all" ? "Total Shipments" : "Total Active");
+          populateCarrierFilter();
+          populateCustomerFilter();
+          syncKpiActiveCard();
+          syncChipsFromKpi();
+          applyFilters();
+          btn.disabled = false; btn.textContent = "Reload";
+        };
+      var onFailure = function (err) {
+        var msg = (err && err.message) || String(err);
+        document.getElementById("error").innerHTML = "<strong>Error:</strong> " + escapeHtml(msg);
+        document.getElementById("error").style.display = "block";
+        btn.disabled = false; btn.textContent = "Reload";
+        document.getElementById("tbody").innerHTML = '<tr><td colspan="13" class="empty">Failed to load. Click Reload.</td></tr>';
+        showToast("Failed to refresh", "error");
+      };
+      // Route to the correct server endpoint based on the active scope:
+      //   active → api=active (Raw Data)
+      //   closed → api=closed (Delivered Archive)
+      //   all    → fetch both in sequence and merge (active first, closed appended)
+      if (scope === "closed") {
+        apiCall("closed", { bust: bust ? 1 : 0 }).withSuccessHandler(onSuccess).withFailureHandler(onFailure).run();
+      } else if (scope === "all") {
+        apiCall("active", { bust: bust ? 1 : 0 })
+          .withSuccessHandler(function (activeRes) {
+            apiCall("closed", {})
+              .withSuccessHandler(function (closedRes) {
+                onSuccess({
+                  rows:   (activeRes && activeRes.rows   || []).concat(closedRes && closedRes.rows || []),
+                  counts:  activeRes && activeRes.counts || {},
+                  updatedAtLabel: (activeRes && activeRes.updatedAtLabel) || (closedRes && closedRes.updatedAtLabel) || ""
+                });
+              })
+              .withFailureHandler(function () { onSuccess(activeRes); }) // closed fetch failed — show active only
+              .run();
+          })
+          .withFailureHandler(onFailure)
+          .run();
+      } else {
+        // active
+        apiCall("active", { bust: bust ? 1 : 0 }).withSuccessHandler(onSuccess).withFailureHandler(onFailure).run();
+      }
+    }
+
+    // ===== Inline track lookup (merged from Track page) =====
+    var STATUS_MAP = {
+      "delivered":          { cls: "s-delivered", icon: "✓",  sub: "Package has been delivered." },
+      "out for delivery":   { cls: "s-onbrand",   icon: "🚚", sub: "Package is on the way to the recipient today." },
+      "in transit":         { cls: "s-onbrand",   icon: "✈️", sub: "Package is moving through the carrier network." },
+      "on hold":            { cls: "s-neutral",   icon: "⏸",  sub: "Carrier has placed a hold on the shipment." },
+      "in clearance":       { cls: "s-neutral",   icon: "🛃", sub: "Going through customs clearance." },
+      "picked up":          { cls: "s-onbrand",   icon: "📮", sub: "Picked up from the sender." },
+      "shipment booked":    { cls: "s-neutral",   icon: "📋", sub: "Shipment information received by the carrier." },
+      "returned":           { cls: "s-neutral",   icon: "↩",  sub: "Package was returned to sender." },
+      "disposed":           { cls: "s-neutral",   icon: "✕",  sub: "Carrier disposed of this package." },
+      "please call courier":{ cls: "s-neutral",   icon: "📞", sub: "Carrier needs to reach the recipient." },
+      "third party delivery arranged": { cls: "s-neutral", icon: "🤝", sub: "A third-party courier will deliver the package." }
+    };
+    function statusMeta(status) {
+      var s = String(status || "").toLowerCase();
+      if (STATUS_MAP[s]) return STATUS_MAP[s];
+      var keys = Object.keys(STATUS_MAP);
+      for (var i = 0; i < keys.length; i++) if (s.indexOf(keys[i]) > -1) return STATUS_MAP[keys[i]];
+      return { cls: "s-neutral", icon: "📦", sub: "" };
+    }
+    function clearTrackResult() { document.getElementById("track-result-area").innerHTML = ""; }
+    function showTrackLoading(tn) {
+      document.getElementById("track-result-area").innerHTML =
+        '<div class="tr-loading"><div class="li"></div><p>Looking up <strong>' + escapeHtml(tn) + '</strong>…</p></div>';
+    }
+    function showTrackError(title, msg) {
+      document.getElementById("track-result-area").innerHTML =
+        '<div class="tr-err"><div class="et">' + escapeHtml(title) + '</div><div class="em">' + escapeHtml(msg || "") + '</div></div>';
+    }
+    function buildTrackJourney(events) {
+      if (!events || events.length === 0) return '<div class="jc-empty">No journey events available yet.</div>';
+      var items = events.map(function (e, i) {
+        var fc = (i === 0) ? " first" : "";
+        return '<div class="timeline-item ' + escapeHtml(e.category || "other") + fc + '">'
+          + '<div class="tl-time">' + escapeHtml(e.timestamp ? fmtFullDate(e.timestamp) : "") + '</div>'
+          + '<div class="tl-desc">' + escapeHtml(e.description || "—") + '</div>'
+          + (e.location ? '<div class="tl-loc">' + escapeHtml(e.location) + '</div>' : "")
+          + '</div>';
+      }).join("");
+      return '<div class="jc-header"><span>Shipment Journey</span><span>' + events.length
+           + ' event' + (events.length===1?"":"s") + '</span></div><div class="timeline">' + items + '</div>';
+    }
+    function showTrackResult(r) {
+      var meta = statusMeta(r.status);
+      var carrier = (r.carrier || "").toUpperCase();
+      var carrierTag = carrier ? '<span class="carrier-tag carrier-' + escapeHtml(carrier) + '">' + escapeHtml(r.carrier) + '</span>' : "";
+      var info = [];
+      if (r.location)              info.push({ lbl: "Latest Location",  val: r.location });
+      if (r.timestamp)             info.push({ lbl: "Latest Update",    val: fmtFullDate(r.timestamp) });
+      if (r.estimatedDeliveryDate) info.push({ lbl: "Courier ETA",      val: fmtFullDate(r.estimatedDeliveryDate) });
+      if (r.pickupDate)            info.push({ lbl: "Picked Up",        val: fmtFullDate(r.pickupDate) });
+      if (r.country)               info.push({ lbl: "Destination",      val: r.country });
+      if (r.orderId)               info.push({ lbl: "Order Reference",  val: r.orderId });
+      if (r.description)           info.push({ lbl: "Latest Activity",  val: r.description });
+      var infoHtml = info.map(function (c) {
+        return '<div class="info"><div class="lbl">' + escapeHtml(c.lbl) + '</div><div class="val">' + escapeHtml(c.val) + '</div></div>';
+      }).join("");
+      // Estimated Delivery hero — shows BOTH courier and Custimoo dates when available.
+      var isDelivered = (r.status || "").toLowerCase().indexOf("delivered") > -1;
+      var courierDate = null;
+      if (r.estimatedDeliveryDate) {
+        var cd = new Date(r.estimatedDeliveryDate);
+        if (!isNaN(cd.getTime())) courierDate = cd;
+      }
+      var custimooDate = null;
+      if (!isDelivered && r.typicalDeliveryDays) {
+        var base = r.pickupDate || r.orderCreateDate;
+        var bd = base ? new Date(base) : null;
+        if (!bd || isNaN(bd.getTime())) bd = new Date();
+        custimooDate = new Date(bd.getTime() + r.typicalDeliveryDays * 86400000);
+      }
+      var primary = courierDate || custimooDate;
+      var primaryLabel = courierDate ? "as predicted by the courier" : "Custimoo AI generated delivery date";
+      // Hero sub-line removed — Custimoo date is shown only in Route Intelligence below.
+      var subLine = "";
+      var etaHtml = (primary && !isDelivered)
+        ? '<div class="tr-eta"><div class="ico">📅</div><div><div class="lbl">Estimated Delivery</div><div class="dt">' + escapeHtml(fmtETA(primary.toISOString())) + '</div><div class="src">' + escapeHtml(primaryLabel) + '</div>' + subLine + '</div></div>'
+        : "";
+      document.getElementById("track-result-area").innerHTML =
+        '<div class="track-result">'
+        +   '<div class="tr-head">'
+        +     '<div><div class="tr-tn">' + escapeHtml(r.tracking) + '</div>' + carrierTag + '</div>'
+        +     '<button class="tr-close" id="tr-close-btn" type="button">× Close</button>'
+        +   '</div>'
+        +   '<div class="tr-status ' + meta.cls + '" id="tr-status-block" role="button" tabindex="0">'
+        +     '<div class="icon">' + meta.icon + '</div>'
+        +     '<div class="label">' + escapeHtml(r.status || "Unknown") + ' <span class="chev">▾</span></div>'
+        +     (meta.sub ? '<div class="sub">' + escapeHtml(meta.sub) + '</div>' : "")
+        +   '</div>'
+        +   etaHtml
+        +   (infoHtml ? '<div class="tr-info-grid">' + infoHtml + '</div>' : "")
+        +   '<div class="tr-journey-wrap" id="tr-journey-wrap">' + buildTrackJourney(r.events) + '</div>'
+        + '</div>';
+      var sb = document.getElementById("tr-status-block");
+      var jw = document.getElementById("tr-journey-wrap");
+      sb.addEventListener("click", function () {
+        var open = jw.classList.toggle("expanded");
+        sb.classList.toggle("expanded", open);
+      });
+      sb.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " ") { e.preventDefault(); sb.click(); }
+      });
+      document.getElementById("tr-close-btn").addEventListener("click", clearTrackResult);
+    }
+    function lookupAndShow() {
+      var tn = (document.getElementById("tn-jump").value || "").trim();
+      if (!tn) { document.getElementById("tn-jump").focus(); return; }
+      // Unified tracking experience — manual search, row click, and direct deep links
+      // all funnel through the canonical Track V7 / Phase 2.5 Track URL so every flow
+      // renders the same detail page (status, courier ETA, Route Intelligence,
+      // destination details, journey).
+      var base = PUBLIC_TRACKER_URL || WEB_APP_URL || (function () {
+        try { return (window.top.location.href || "").split("?")[0]; } catch (e) { return window.location.href.split("?")[0]; }
+      })();
+      var a = document.createElement("a");
+      a.href = base + "?tracking=" + encodeURIComponent(tn) + "&internal=1";
+      a.target = "_blank";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Brief feedback in the inline area in case the popup was blocked.
+      document.getElementById("track-result-area").innerHTML =
+        '<div class="tr-loading"><p>Opening tracking detail for <strong>' + escapeHtml(tn) + '</strong> in a new tab…</p>' +
+        '<p style="margin-top:8px;font-size:12px;color:#9CA1A3;">If nothing opened, ' +
+        '<a href="' + escapeHtml(base + "?tracking=" + encodeURIComponent(tn)) + '" target="_blank" rel="noopener" style="color:#1FB089;text-decoration:underline;">click here</a>.</p></div>';
+    }
+
+    // ===== Wire-up =====
+    document.querySelectorAll(".tab-btn").forEach(function (b) {
+      b.addEventListener("click", function () { switchTab(b.getAttribute("data-tab")); });
+    });
+    document.getElementById("reload").addEventListener("click", function () { loadData(true); });
+    document.getElementById("search").addEventListener("input", applyFilters);
+    document.getElementById("filter-carrier").addEventListener("change", applyFilters);
+    document.getElementById("filter-region").addEventListener("change", applyFilters);
+    document.getElementById("filter-customer").addEventListener("change", applyFilters);
+    var dfFrom = document.getElementById("filter-from");
+    var dfTo   = document.getElementById("filter-to");
+    if (dfFrom) dfFrom.addEventListener("change", applyFilters);
+    if (dfTo)   dfTo.addEventListener("change",   applyFilters);
+    document.getElementById("export-xlsx").addEventListener("click", exportXlsx);
+    document.getElementById("clear-filters").addEventListener("click", function () {
+      document.getElementById("search").value = "";
+      document.getElementById("filter-carrier").value = "";
+      document.getElementById("filter-region").value = "";
+      document.getElementById("filter-customer").value = "";
+      if (dfFrom) dfFrom.value = "";
+      if (dfTo)   dfTo.value   = "";
+      STATE.activeStatuses = { "in transit": true, "at facility": true, "out for delivery": true, "picked up": true, "shipment booked": true, "in clearance": true, "on hold": true, "third party": true, "other": true };
+      STATE.activeKpi = "all";
+      document.querySelectorAll(".status-chip").forEach(function (c) { c.classList.add("active"); });
+      syncKpiActiveCard();
+      applyFilters();
+    });
+
+    /* ===== KPI cards as clickable filters ===== */
+    // Each KPI card filters the table to a single status. "Total Active" resets to all
+    // statuses. The status chips are synced so the UI stays consistent.
+    function syncKpiActiveCard() {
+      document.querySelectorAll(".stat[data-kpi]").forEach(function (card) {
+        card.classList.toggle("kpi-active", card.getAttribute("data-kpi") === STATE.activeKpi);
+      });
+    }
+    function syncChipsFromKpi() {
+      var key = STATE.activeKpi;
+      if (key === "all") {
+        // "All" must include every bucket — chips AND the synthetic "other" bucket — otherwise
+        // shipments with statuses not in the named chip set (e.g. At Facility, Shipment Booked,
+        // unmapped 3PL terms) would be silently excluded from the table.
+        STATE.activeStatuses = { "in transit": true, "at facility": true, "out for delivery": true, "picked up": true, "shipment booked": true, "in clearance": true, "on hold": true, "third party": true, "other": true };
+      } else {
+        // single-status filter: only the picked chip is active
+        STATE.activeStatuses = { "in transit": false, "at facility": false, "out for delivery": false, "picked up": false, "shipment booked": false, "in clearance": false, "on hold": false, "third party": false, "other": false };
+        if (Object.prototype.hasOwnProperty.call(STATE.activeStatuses, key)) STATE.activeStatuses[key] = true;
+      }
+      document.querySelectorAll(".status-chip").forEach(function (chip) {
+        var ck = chip.getAttribute("data-status");
+        chip.classList.toggle("active", !!STATE.activeStatuses[ck]);
+      });
+    }
+    document.querySelectorAll(".stat[data-kpi]").forEach(function (card) {
+      card.addEventListener("click", function () {
+        var key = card.getAttribute("data-kpi");
+        // Re-clicking the active card resets to All Active
+        if (STATE.activeKpi === key && key !== "all") key = "all";
+        STATE.activeKpi = key;
+        syncKpiActiveCard();
+        syncChipsFromKpi();
+        applyFilters();
+      });
+    });
+
+    /* ===== Scope: Active / Closed / All ===== */
+    document.querySelectorAll("#scope-bar button[data-scope]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var sc = btn.getAttribute("data-scope");
+        if (STATE.scope === sc) return;
+        STATE.scope = sc;
+        document.querySelectorAll("#scope-bar button").forEach(function (b) { b.classList.toggle("active", b === btn); });
+        loadData(false);
+      });
+    });
+    document.querySelectorAll(".status-chip").forEach(function (chip) {
+      chip.addEventListener("click", function () {
+        var key = chip.getAttribute("data-status");
+        STATE.activeStatuses[key] = !STATE.activeStatuses[key];
+        chip.classList.toggle("active", STATE.activeStatuses[key]);
+        applyFilters();
+      });
+    });
+    document.querySelectorAll("thead th[data-sort]").forEach(function (th) {
+      th.addEventListener("click", function () {
+        var k = th.getAttribute("data-sort");
+        if (STATE.sort.key === k) STATE.sort.dir *= -1;
+        else { STATE.sort.key = k; STATE.sort.dir = 1; }
+        sortFiltered(); renderTable();
+      });
+    });
+    document.getElementById("tbody").addEventListener("click", function (ev) {
+      var copyBtn = ev.target.closest(".copy-tn-btn[data-copy-tn]");
+      if (copyBtn) { ev.preventDefault(); ev.stopPropagation(); copyTN(copyBtn, copyBtn.getAttribute("data-copy-tn")); return; }
+      var badge = ev.target.closest(".badge[data-tn]");
+      if (badge) { ev.preventDefault(); toggleJourney(badge.getAttribute("data-tn")); return; }
+      // Row click → open Track detail page in a new tab (Phase 2 requirement).
+      // Skip if user clicked inside an editable remark cell or any form control / link.
+      if (ev.target.closest(".remark-cell[contenteditable]")) return;
+      if (ev.target.closest("button, a, input, select, textarea, [contenteditable=\"true\"]")) return;
+      var row = ev.target.closest("tr.data-row[data-tn]");
+      if (!row) return;
+      var tn = row.getAttribute("data-tn");
+      if (!tn) return;
+      // Prefer the explicit PUBLIC_TRACKER_URL (lets row-clicks target a different deployment
+       // where the updated public tracker lives). Fall back to current deployment URL.
+      var base = PUBLIC_TRACKER_URL || WEB_APP_URL || (function () {
+        try { return (window.top.location.href || "").split("?")[0]; } catch (e) { return window.location.href.split("?")[0]; }
+      })();
+      // Use a real anchor click — window.open is unreliable in Apps Script's sandboxed iframe.
+      var a = document.createElement("a");
+      a.href = base + "?tracking=" + encodeURIComponent(tn) + "&internal=1";
+      a.target = "_blank";
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    });
+    document.getElementById("tbody").addEventListener("focusin", function (ev) {
+      var cell = ev.target.closest(".remark-cell[data-edit-tn]");
+      if (cell && cell.textContent.trim() === "—") cell.textContent = "";
+    });
+    document.getElementById("tbody").addEventListener("focusout", function (ev) {
+      var cell = ev.target.closest(".remark-cell[data-edit-tn]");
+      if (cell) saveRemark(cell);
+    });
+    document.getElementById("tbody").addEventListener("keydown", function (ev) {
+      var cell = ev.target.closest(".remark-cell[data-edit-tn]");
+      if (cell) {
+        if (ev.key === "Escape") { ev.preventDefault(); cell.textContent = cell.getAttribute("data-original") || "—"; cell.blur(); }
+        else if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); cell.blur(); }
+      }
+    });
+
+    // TN-jump triggers inline lookup
+    document.getElementById("tn-jump-btn").addEventListener("click", lookupAndShow);
+    document.getElementById("tn-jump").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); lookupAndShow(); }
+    });
+
+    // ===== INSIGHTS TAB =====
+    var INSIGHTS_LOADED = false;
+    function loadInsights() {
+      if (INSIGHTS_LOADED) return;
+      var loading = document.getElementById("insights-loading");
+      var content = document.getElementById("insights-content");
+      apiCall("insights", {}).withSuccessHandler(function (res) {
+        if (!res || !res.ok) {
+          loading.textContent = "Failed to load insights: " + ((res && res.error) || "unknown error");
+          return;
+        }
+        renderInsights(res);
+        loading.style.display = "none";
+        content.style.display = "";
+        INSIGHTS_LOADED = true;
+      }).withFailureHandler(function (err) {
+        loading.textContent = "Insights error: " + ((err && err.message) || String(err));
+      }).run();
+    }
+    function renderInsights(res) {
+      // Period header labels
+      var rl = res.rangeLabels || {};
+      var tw = document.getElementById("ip-this-week");
+      var lw = document.getElementById("ip-last-week");
+      var sm = document.getElementById("ip-same-month");
+      if (tw && rl.thisWeek) tw.innerHTML = 'This week<br><span style="font-weight:400;font-size:11px;color:#9CA1A3;">' + escapeHtml(rl.thisWeek) + '</span>';
+      if (lw && rl.lastWeek) lw.innerHTML = 'Last week<br><span style="font-weight:400;font-size:11px;color:#9CA1A3;">' + escapeHtml(rl.lastWeek) + '</span>';
+      if (sm && rl.sameWeekLastMonth) sm.innerHTML = 'Same week, last month<br><span style="font-weight:400;font-size:11px;color:#9CA1A3;">' + escapeHtml(rl.sameWeekLastMonth) + '</span>';
+
+      // Period rows
+      var p = res.periodComparison || {};
+      function cmpCell(curr, prev) {
+        var delta = (curr || 0) - (prev || 0);
+        var arrow = delta > 0 ? '<span style="color:#1FB089;">▲</span>' : (delta < 0 ? '<span style="color:#dc2626;">▼</span>' : '');
+        return '<td style="text-align:right;padding:8px;">' + (curr != null ? curr : '—') + ' ' + arrow + '</td>';
+      }
+      var pBody = document.getElementById("insights-periods-body");
+      function periodRow(label, key, suffix) {
+        var thisV = (p.thisWeek && p.thisWeek[key]) || 0;
+        var lastV = (p.lastWeek && p.lastWeek[key]) || 0;
+        var smV   = (p.sameWeekLastMonth && p.sameWeekLastMonth[key]) || 0;
+        var fmt = function (v) { return v == null ? '—' : (suffix ? (v + suffix) : v); };
+        var arr = function (curr, prev) {
+          var d = (curr || 0) - (prev || 0);
+          return d > 0 ? ' <span style="color:#1FB089;">▲</span>' : (d < 0 ? ' <span style="color:#dc2626;">▼</span>' : '');
+        };
+        return '<tr style="border-bottom:1px solid #F3F4F6;">' +
+                 '<td style="padding:8px;color:#111827;font-weight:500;">' + label + '</td>' +
+                 '<td style="text-align:right;padding:8px;font-weight:600;">' + fmt(thisV) + arr(thisV, lastV) + '</td>' +
+                 '<td style="text-align:right;padding:8px;color:#5b6166;">' + fmt(lastV) + '</td>' +
+                 '<td style="text-align:right;padding:8px;color:#5b6166;">' + fmt(smV) + '</td>' +
+               '</tr>';
+      }
+      pBody.innerHTML =
+        periodRow("Delivered shipments", "delivered", "") +
+        periodRow("Avg transit (days)", "avgTransit", "");
+
+      // Carriers — delivered count + avg transit only
+      var cBody = document.getElementById("insights-carriers-body");
+      cBody.innerHTML = (res.carrierScorecard || []).map(function (c) {
+        return '<tr style="border-bottom:1px solid #F3F4F6;">' +
+                 '<td style="padding:8px;color:#111827;font-weight:500;">' + escapeHtml(c.carrier) + '</td>' +
+                 '<td style="text-align:right;padding:8px;font-weight:600;">' + (c.delivered || 0) + '</td>' +
+                 '<td style="text-align:right;padding:8px;">' + (c.avgTransit != null ? c.avgTransit + 'd' : '—') + '</td>' +
+               '</tr>';
+      }).join("");
+
+      // Top Problem Destinations rendering — REMOVED. Insights tab is delivered-only;
+      // exception destinations live in CSM Canada / CSM USA tabs.
+
+      // Shared bar renderer for "avg delivery time" charts. Each row = label
+      // on the left, color-coded bar in the middle, volume on the right.
+      function _renderAvgDeliveryBars(targetEl, rows, labelKey, volumeSuffix) {
+        if (!rows || !rows.length) {
+          targetEl.innerHTML = '<div style="padding:14px;text-align:center;color:#9CA1A3;">Not enough delivered shipments yet.</div>';
+          return;
+        }
+        var maxD = rows.reduce(function (m, r) { return Math.max(m, r.avgDays || 0); }, 0) || 1;
+        function _color(days) {
+          var ratio = days / maxD;
+          if (ratio <= 0.4) return "#1FB089";
+          if (ratio <= 0.7) return "#facc15";
+          return "#dc2626";
+        }
+        targetEl.innerHTML = rows.map(function (r) {
+          var widthPct = (r.avgDays / maxD) * 100;
+          var color = _color(r.avgDays);
+          var rightTxt = (r.volume || 0) + ' ' + (volumeSuffix || 'shipments');
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;">' +
+                   '<div style="min-width:140px;color:#111827;font-weight:500;">' + escapeHtml(r[labelKey] || "—") + '</div>' +
+                   '<div style="flex:1;background:#F3F4F6;border-radius:4px;overflow:hidden;height:20px;position:relative;">' +
+                     '<div style="background:' + color + ';height:100%;width:' + widthPct + '%;border-radius:4px;"></div>' +
+                     '<div style="position:absolute;top:0;left:8px;line-height:20px;color:#111827;font-weight:600;font-size:11.5px;">' + r.avgDays + 'd</div>' +
+                   '</div>' +
+                   '<div style="min-width:140px;color:#5b6166;font-size:11px;">' + rightTxt + '</div>' +
+                 '</div>';
+        }).join('') +
+        '<div style="display:flex;gap:14px;font-size:11px;color:#5b6166;margin-top:8px;">' +
+          '<span><span style="display:inline-block;width:10px;height:10px;background:#1FB089;border-radius:2px;margin-right:4px;"></span>Fast</span>' +
+          '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;margin-right:4px;"></span>Moderate</span>' +
+          '<span><span style="display:inline-block;width:10px;height:10px;background:#dc2626;border-radius:2px;margin-right:4px;"></span>Slow</span>' +
+        '</div>';
+      }
+
+      // Carrier-wise avg delivery time
+      _renderAvgDeliveryBars(
+        document.getElementById("insights-carrierwise-chart"),
+        res.carrierWiseAvgDelivery || [],
+        "carrier",
+        "delivered"
+      );
+
+      // Province-wise avg delivery time
+      _renderAvgDeliveryBars(
+        document.getElementById("insights-provincewise-chart"),
+        res.provinceWiseAvgDelivery || [],
+        "province",
+        "shipments"
+      );
+
+      // City-wise average delivery time — horizontal bar chart
+      var ccChart = document.getElementById("insights-citywise-chart");
+      var cities = res.cityWiseAvgDelivery || [];
+      if (!cities.length) {
+        ccChart.innerHTML = '<div style="padding:14px;text-align:center;color:#9CA1A3;">Not enough delivered shipments yet to compute city averages.</div>';
+      } else {
+        var maxDays = cities.reduce(function (m, c) { return Math.max(m, c.avgDays || 0); }, 0) || 1;
+        function _barColor(days, maxDays) {
+          var ratio = days / maxDays;
+          if (ratio <= 0.4) return "#1FB089";
+          if (ratio <= 0.7) return "#facc15";
+          return "#dc2626";
+        }
+        ccChart.innerHTML = cities.map(function (c) {
+          var widthPct = (c.avgDays / maxDays) * 100;
+          var color = _barColor(c.avgDays, maxDays);
+          return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:12px;">' +
+                   '<div style="min-width:140px;color:#111827;font-weight:500;">' + escapeHtml(c.city) + '</div>' +
+                   '<div style="flex:1;background:#F3F4F6;border-radius:4px;overflow:hidden;height:20px;position:relative;">' +
+                     '<div style="background:' + color + ';height:100%;width:' + widthPct + '%;border-radius:4px;"></div>' +
+                     '<div style="position:absolute;top:0;left:8px;line-height:20px;color:#111827;font-weight:600;font-size:11.5px;">' + c.avgDays + 'd</div>' +
+                   '</div>' +
+                   '<div style="min-width:140px;color:#5b6166;font-size:11px;">' + c.volume + ' shipments' + (c.topCarrier ? ' · ' + c.topCarrier : '') + '</div>' +
+                 '</div>';
+        }).join('') +
+        '<div style="display:flex;gap:14px;font-size:11px;color:#5b6166;margin-top:8px;">' +
+          '<span><span style="display:inline-block;width:10px;height:10px;background:#1FB089;border-radius:2px;margin-right:4px;"></span>Fast</span>' +
+          '<span><span style="display:inline-block;width:10px;height:10px;background:#facc15;border-radius:2px;margin-right:4px;"></span>Moderate</span>' +
+          '<span><span style="display:inline-block;width:10px;height:10px;background:#dc2626;border-radius:2px;margin-right:4px;"></span>Slow</span>' +
+        '</div>';
+      }
+    }
+
+    // Honor URL-driven initial tab (?tab=track | csm-ca | csm-us, or legacy ?region=canada|usa).
+    var INITIAL_TAB = (function () {
+      var qs = new URLSearchParams(window.location.search || "");
+      var tab = (qs.get("tab") || "").toLowerCase();
+      if (tab === "track" || tab === "csm-ca" || tab === "csm-us") return tab;
+      var region = (qs.get("region") || "").toLowerCase();
+      if (region === "canada") return "csm-ca";
+      if (region === "usa") return "csm-us";
+      return "all";
+    })();
+    if (INITIAL_TAB && INITIAL_TAB !== "all") switchTab(INITIAL_TAB);
+
+    loadData(false);
+  </script>
+
+</body>
+</html>
