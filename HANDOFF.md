@@ -15,17 +15,7 @@
 
 ## What you need to do — in order
 
-### Step 1 — Generate PNG icons from `icon.svg` (~2 min)
-
-GitHub Pages and Android PWAs need real PNGs. Easiest path:
-
-- Open https://realfavicongenerator.net or https://maskable.app/editor in your browser
-- Upload `icon.svg` → export 192x192, 512x512, and a 512x512 maskable PNG
-- Save them next to `icon.svg` as `icon-192.png`, `icon-512.png`, `icon-512-maskable.png`
-
-(Skip this for the first dry run if you want — the SVG works on iOS, just not on older Android.)
-
-### Step 2 — Redeploy Apps Script as a new version (~3 min)
+### Step 1 — Redeploy Apps Script as a new version (~3 min)
 
 The new `?api=...` JSON endpoint only exists once you push and redeploy.
 
@@ -44,7 +34,7 @@ https://script.google.com/macros/s/AKfycbwx9_BB153l0U57v2gKvWG2xe72B5eUxNIbU1lUP
 
 You should see JSON, not HTML. If you see the dashboard HTML, the new version isn't deployed yet.
 
-### Step 3 — Test locally (~2 min)
+### Step 2 — Test locally (~2 min)
 
 ```powershell
 cd "C:\Users\WaleedFarooq\Documents\Claude\Projects\custimoo-tracker"
@@ -54,7 +44,7 @@ npx serve .
 Open `http://localhost:3000/index.html` — search a real tracking number; should work end-to-end.
 Open `http://localhost:3000/admin.html` — dashboard should load rows.
 
-### Step 4 — Push to GitHub + enable Pages (~5 min)
+### Step 3 — Push to GitHub + enable Pages (~5 min)
 
 ```powershell
 cd "C:\Users\WaleedFarooq\Documents\Claude\Projects\custimoo-tracker"
@@ -66,12 +56,12 @@ gh repo edit --enable-pages --pages-branch=main --pages-path=/
 
 Wait ~1 min, then open `https://<your-github-username>.github.io/custimoo-tracker/`.
 
-### Step 5 — Install on phone (~2 min)
+### Step 4 — Install on phone (~2 min)
 
 - **iPhone**: open the URL in Safari → tap Share → Add to Home Screen → tap the new "Custimoo" icon → opens full-screen.
 - **Android**: open in Chrome → see "Install app" prompt (or menu → Install app) → tap icon from app drawer.
 
-### Step 6 — Custom domain (optional, ~15 min + DNS propagation)
+### Step 5 — Custom domain (optional, ~15 min + DNS propagation)
 
 If you want `track.custimoo.com` instead of the `*.github.io` URL:
 

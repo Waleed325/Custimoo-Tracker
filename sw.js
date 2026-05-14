@@ -1,13 +1,14 @@
 // Custimoo Tracker — service worker (app shell only).
 // Bump CACHE_VERSION whenever the shell HTML/CSS changes so users get fresh assets.
-const CACHE_VERSION = "custimoo-tracker-v1";
+const CACHE_VERSION = "custimoo-tracker-v2";
 const SHELL = [
   "./",
   "./index.html",
   "./manifest.json",
-  "./icon.svg",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./icon-180.png",
+  "./favicon-32.png"
 ];
 
 self.addEventListener("install", (e) => {

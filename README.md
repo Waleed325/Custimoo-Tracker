@@ -12,8 +12,11 @@ Backend stays in Google Apps Script (`Tracking Sheet` project) and is reached vi
 | `admin.html` | Laptop master dashboard for the team. KPI cards, table, insights tab. |
 | `manifest.json` | PWA manifest (name, icons, theme color `#33DCAE`). |
 | `sw.js` | Service worker — caches the app shell, never caches Apps Script API calls. |
-| `icon.svg` | Source icon (Custimoo green C). |
-| `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` | PNG icons referenced by `manifest.json`. **Generate from `icon.svg` before deploy** — see HANDOFF.md. |
+| `icon-source.png` | Original 512x512 brand logo provided by Waleed. |
+| `icon-192.png`, `icon-512.png`, `icon-512-maskable.png` | PWA icons referenced by `manifest.json`. |
+| `icon-180.png` | Apple touch icon (iOS home-screen size). |
+| `favicon-32.png` | Browser tab favicon. |
+| `icon.svg` | Vector version of the C-with-leaf mark (matches the inline header SVGs). |
 
 ## Backend endpoint
 
